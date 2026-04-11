@@ -60,6 +60,5 @@ public class AssetRequestDto {
     private LocalDateTime purchaseDate;
 
     @NotNull(message = "Asset type required")
-    private AssetType assetType;
-
+    private String assetType;
 }
