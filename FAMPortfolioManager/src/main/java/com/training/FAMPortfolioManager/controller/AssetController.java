@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.training.FAMPortfolioManager.service.AssetService;
+
+import jakarta.persistence.Inheritance;
+
 import com.training.FAMPortfolioManager.dto.AssetRequestDto;
 import com.training.FAMPortfolioManager.dto.AssetResponseDto;
 import com.training.FAMPortfolioManager.model.AssetType;
@@ -84,9 +87,9 @@ public class AssetController {
     @PostMapping
     public Asset createAsset(@RequestBody AssetRequestDto assetRequest) {
         Asset asset = new Asset();
-        asset.setName(assetRequest.getName());
-        asset.setType(assetRequest.getType());
-        asset.setDatePurchased(assetRequest.getDatePurchased());
+        asset.setName(assetRequest.getCompanyName());
+        asset.setAssetType(assetRequest.getAssetType());
+        asset.setDatePurchased(assetRequest.getPurchaseDate());
         asset.setTicker(assetRequest.getTicker());
 
         Asset savedAsset = assetRepository.save(asset);
@@ -97,9 +100,9 @@ public class AssetController {
     public ResponseEntity<Asset> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
         return assetRepository.findById(id)
                 .map(asset -> {
-                    asset.setName(assetRequest.getName());
-                    asset.setType(assetRequest.getType());
-                    asset.setDatePurchased(assetRequest.getDatePurchased());
+                    asset.setName(assetRequest.getCompanyName());
+                    asset.setAssetType(assetRequest.getAssetType());
+                    asset.setDatePurchased(assetRequest.getPurchaseDate());
                     asset.setTicker(assetRequest.getTicker());
                     Asset updatedAsset = assetRepository.save(asset);
                     return ResponseEntity.ok(updatedAsset);
