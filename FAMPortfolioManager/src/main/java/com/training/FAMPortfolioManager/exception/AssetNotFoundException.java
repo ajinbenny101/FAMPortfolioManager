@@ -1,6 +1,7 @@
 package com.training.FAMPortfolioManager.exception;
 
 // AssetNotFoundException - custom exception for missing assets
+
 // CLASS ANNOTATIONS: (none - exceptions don't need Spring annotations)
 // Extend RuntimeException (unchecked exception - no need to declare throws)
 // Constructor takes an asset id and passes message like "Asset not found with id: {id}" to super

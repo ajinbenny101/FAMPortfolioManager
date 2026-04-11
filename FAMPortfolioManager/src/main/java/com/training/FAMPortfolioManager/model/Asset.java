@@ -28,87 +28,32 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import java.time.LocalDateTime;
-// import lombok.Getter;
-// import lombok.Setter;
-// import lombok.NoArgsConstructor;
-// import lombok.AllArgsConstructor;
-import com.training.FAMPortfolioManager.model.Portfolio;
-
-import java.time.LocalDateTime;
-import java.util.regex.Pattern;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "assets")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Asset {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String assetType;
-    private String name;
-    private LocalDateTime datePurchased;
     private String ticker;
+    private String companyName;
     private double quantity;
     private double purchasePrice;
+    private LocalDateTime purchaseDate;
+
+    @Enumerated(EnumType.STRING)
+    private AssetType assetType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "portfolio_id", nullable = false)
     private Portfolio portfolio;
-
-
-    public Asset() {
-    }
-
-    public Asset(String assetType, String name, LocalDateTime datePurchased, String ticker) {
-        this.assetType = assetType;
-        this.name = name;
-        this.datePurchased = datePurchased;
-        this.ticker = ticker;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getAssetType() {
-        return assetType;
-    }
-
-    public void setAssetType(String assetType) {
-        this.assetType = assetType;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public LocalDateTime getDatePurchased() {
-        return datePurchased;
-    }
-
-    public void setDatePurchased(LocalDateTime datePurchased) {
-        this.datePurchased = datePurchased;
-    }
-
-    public String getTicker() {
-        return ticker;
-    }
-
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
-    }
 }

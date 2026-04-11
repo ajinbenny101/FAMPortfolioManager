@@ -33,6 +33,27 @@ package com.training.FAMPortfolioManager.dto;
 // import lombok.Setter;
 // import lombok.NoArgsConstructor;
 // import lombok.AllArgsConstructor;
-public class AssetResponseDto {
+import com.training.FAMPortfolioManager.model.AssetType;
+import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class AssetResponseDto {
+    private Long id;
+    private String ticker;
+    private String companyName;
+    private double quantity;
+    private double purchasePrice;
+    private LocalDateTime purchaseDate;
+    private AssetType assetType;
+    private double currentPrice;        // Added: live market price
+    private double marketValue;         // Added: quantity * currentPrice
+    private double profitLoss;          // Added: (currentPrice - purchasePrice) * quantity
+    private double profitLossPercent;   // Added: (profitLoss / totalCost) * 100
 }

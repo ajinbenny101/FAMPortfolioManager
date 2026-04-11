@@ -19,5 +19,11 @@ import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 public interface AssetRepository extends JpaRepository<Asset, Long> {
+    List<Asset> findByTicker(String ticker);
+    List<Asset> findByAssetType(AssetType assetType);
 
+    @Query("SELECT a FROM Asset a WHERE a.purchaseDate BETWEEN :startDate AND :endDate")
+    List<Asset> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    List<Asset> findByPortfolioId(Long portfolioId);
 }

@@ -20,7 +20,21 @@ package com.training.FAMPortfolioManager.dto;
 // import lombok.Setter;
 // import lombok.NoArgsConstructor;
 // import lombok.AllArgsConstructor;
-public class PerformanceDataPointDto {
+// IMPORTS NEEDED:
+import java.time.LocalDate;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class PerformanceDataPointDto {
+    private LocalDate date;
+    private double totalValue;
+    private double totalReturn;
+    private double totalReturnPercent;
 }
 
