@@ -1,5 +1,6 @@
 package com.training.FAMPortfolioManager.controller;
 
+// imports given by Steve
 import com.training.FAMPortfolioManager.PortfolioApplication;
 import com.training.FAMPortfolioManager.repository.AssetRepository;
 import com.training.FAMPortfolioManager.model.Asset;
@@ -10,6 +11,21 @@ import java.util.List;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
+
+// imports advised by the prompt and needed for the controller functionality
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.training.FAMPortfolioManager.service.AssetService;
+import com.training.FAMPortfolioManager.dto.AssetRequestDto;
+import com.training.FAMPortfolioManager.dto.AssetResponseDto;
+import com.training.FAMPortfolioManager.model.AssetType;
+import java.time.LocalDate;
+
 
 // AssetController - REST endpoints for asset management
 // CLASS ANNOTATIONS:
@@ -38,18 +54,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 //     @GetMapping with @RequestParam(required = false) parameters
 //
 // IMPORTS NEEDED:
-// import org.springframework.web.bind.annotation.RestController;
-// import org.springframework.web.bind.annotation.RequestMapping;
-// import org.springframework.web.bind.annotation.GetMapping;
-// import org.springframework.web.bind.annotation.PostMapping;
-// import org.springframework.web.bind.annotation.DeleteMapping;
-// import org.springframework.web.bind.annotation.RequestParam;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import com.training.FAMPortfolioManager.service.AssetService;
-// import com.training.FAMPortfolioManager.dto.AssetRequestDto;
-// import com.training.FAMPortfolioManager.dto.AssetResponseDto;
-// import com.training.FAMPortfolioManager.model.AssetType;
-// import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/api/assets")
 public class AssetController {
