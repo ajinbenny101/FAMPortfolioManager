@@ -4,6 +4,8 @@ package com.training.FAMPortfolioManager.controller;
 import com.training.FAMPortfolioManager.PortfolioApplication;
 import com.training.FAMPortfolioManager.repository.AssetRepository;
 import com.training.FAMPortfolioManager.model.Asset;
+import com.training.FAMPortfolioManager.dto.AssetRequestDto;
+import com.training.FAMPortfolioManager.model.AssetType;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,10 +73,10 @@ public class AssetController {
     public List<Asset> getAllAssets() {
         return assetRepository.findAll();
     }
-// Get asset by ticker - GET /api/assets/{ticker}
-    @GetMapping("/{ticker}")
-    public ResponseEntity<Asset> getAssetByTicker(@PathVariable String ticker) {
-        return assetRepository.findByTicker(ticker)
+// Get asset by ID - GET /api/assets/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<Asset> getAssetById(@PathVariable Long id) {
+        return assetRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -91,29 +93,31 @@ public class AssetController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedAsset).getBody();
     }
 
-    @PutMapping("/{ticker}")
-    public ResponseEntity<Asset> updateAsset(@PathVariable String ticker, @RequestBody AssetRequestDto assetRequest) {
-        return assetRepository.findByTicker(ticker)
+    @PutMapping("/{id}")
+    public ResponseEntity<Asset> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
+        return assetRepository.findById(id)
                 .map(asset -> {
                     asset.setName(assetRequest.getName());
                     asset.setType(assetRequest.getType());
                     asset.setDatePurchased(assetRequest.getDatePurchased());
+                    asset.setTicker(assetRequest.getTicker());
                     Asset updatedAsset = assetRepository.save(asset);
                     return ResponseEntity.ok(updatedAsset);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{ticker}")
-    public ResponseEntity<Void> deleteAsset(@PathVariable String ticker) {
-        return assetRepository.findByTicker(ticker)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
+        return assetRepository.findById(id)
                 .map(asset -> {  // If asset is found, delete it and return 204 No Content
                     assetRepository.delete(asset);
-                    System.out.println("Deleted asset with ticker: " + ticker);
+                    System.out.println("Deleted asset with ID: " + id);
                     return ResponseEntity.noContent().<Void>build();
                 })
-                .orElseGet(() -> 
-                System.out.println("Asset with ticker " + ticker + " not found for deletion."));
-                ResponseEntity.notFound().build();
+                .orElseGet(() -> {
+                    System.out.println("Asset with ID " + id + " not found for deletion.");
+                    return ResponseEntity.notFound().build();
+                });
     }
 }

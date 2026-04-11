@@ -7,6 +7,7 @@ package com.training.FAMPortfolioManager.model;
 //
 // IMPORTS NEEDED:
 // (No additional imports needed - enum is built-in)
+
 public enum AssetType {
     STOCK,
     BOND,
