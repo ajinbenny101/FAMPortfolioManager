@@ -85,7 +85,7 @@ public class AssetController {
     public Asset createAsset(@RequestBody AssetRequestDto assetRequest) {
         Asset asset = new Asset();
         asset.setName(assetRequest.getName());
-        asset.setType(assetRequest.getType());
+        asset.setAssetType(assetRequest.getAssetType());
         asset.setDatePurchased(assetRequest.getDatePurchased());
         asset.setTicker(assetRequest.getTicker());
 
@@ -98,7 +98,7 @@ public class AssetController {
         return assetRepository.findById(id)
                 .map(asset -> {
                     asset.setName(assetRequest.getName());
-                    asset.setType(assetRequest.getType());
+                    asset.setAssetType(assetRequest.getAssetType());
                     asset.setDatePurchased(assetRequest.getDatePurchased());
                     asset.setTicker(assetRequest.getTicker());
                     Asset updatedAsset = assetRepository.save(asset);
