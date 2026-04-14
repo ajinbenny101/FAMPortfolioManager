@@ -15,9 +15,9 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import com.training.FAMPortfolioManager.model.Portfolio;
 import java.util.Optional;
-public interface PortfolioRepository extends JpaRepository<Portfolio, Long>
-{
-    @Cacheable("portfolio")
-    Optional<Portfolio> findFirstBy();
+public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
+    Optional<Portfolio> findByName(String name);
 
+    @Query("SELECT p FROM Portfolio p.createdDate DESC LIMIT 1")
+    Optional<Portfolio> findFirstPortfolio();
 }

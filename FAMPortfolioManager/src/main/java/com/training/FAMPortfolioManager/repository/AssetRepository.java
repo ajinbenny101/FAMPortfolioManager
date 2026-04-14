@@ -15,3 +15,13 @@ public interface AssetRepository extends JpaRepository<Asset, Long>
     @Query("SELECT a FROM Asset a WHERE a.purchaseDate BETWEEN :startDate AND :endDate")
     List<Asset> findByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }
+
+// public interface AssetRepository extends JpaRepository<Asset, Long> {
+//     List<Asset> findByTicker(String ticker);
+//     List<Asset> findByAssetType(AssetType type);
+
+// list<asset> findByTicker(String ticker);
+
+//    @Query("SELECT a FROM Asset a WHERE a.purchaseDate BETWEEN :startDate AND :endDate")
+//    List<Asset> findByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+// list<asset> findByPortfolioId(Long portfolioId);
