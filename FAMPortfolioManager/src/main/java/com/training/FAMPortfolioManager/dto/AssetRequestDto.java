@@ -31,7 +31,6 @@ package com.training.FAMPortfolioManager.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.NotBlank;
-import com.training.FAMPortfolioManager.model.AssetType;
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
@@ -60,5 +59,5 @@ public class AssetRequestDto {
     private LocalDateTime purchaseDate;
 
     @NotNull(message = "Asset type required")
-    private String assetType;
+    private Long portfolioId;
 }

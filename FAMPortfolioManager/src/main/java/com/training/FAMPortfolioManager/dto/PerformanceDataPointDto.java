@@ -13,14 +13,18 @@ package com.training.FAMPortfolioManager.dto;
 // FIELD LAYOUT:
 // private LocalDate date;       // Purchase date or aggregation date
 // private double totalValue;    // Total portfolio value at this date
-//
-// IMPORTS NEEDED:
-// import java.time.LocalDate;
-// import lombok.Getter;
-// import lombok.Setter;
-// import lombok.NoArgsConstructor;
-// import lombok.AllArgsConstructor;
+import java.time.LocalDate;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class PerformanceDataPointDto {
 
+    private LocalDate date;
+    private double totalValue;
 }
-

@@ -41,7 +41,7 @@ public class Asset {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    private String companyName;
     private LocalDateTime datePurchased;
     private String ticker;
     private double quantity;
@@ -51,8 +51,8 @@ public class Asset {
     @JoinColumn(name = "portfolio_id", nullable = false)
     private Portfolio portfolio;
 
-    public Asset(String assetType, String name, LocalDateTime datePurchased, String ticker, double quantity, double purchasePrice) {
-        this.name = name;
+    public Asset(String companyName, LocalDateTime datePurchased, String ticker, double quantity, double purchasePrice) {
+        this.companyName = companyName;
         this.datePurchased = datePurchased;
         this.ticker = ticker;
         this.quantity = quantity;

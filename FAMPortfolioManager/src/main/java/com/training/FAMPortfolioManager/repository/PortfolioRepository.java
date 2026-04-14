@@ -10,14 +10,20 @@ package com.training.FAMPortfolioManager.repository;
 //
 // IMPORTS NEEDED:
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Repository;
+// import org.springframework.data.jpa.repository.Query;
+// import org.springframework.cache.annotation.Cacheable;
+// import org.springframework.stereotype.Repository;
+
+import com.training.FAMPortfolioManager.model.Asset;
 import com.training.FAMPortfolioManager.model.Portfolio;
-import java.util.Optional;
+
+import java.util.List;
+// import java.util.Optional;
 public interface PortfolioRepository extends JpaRepository<Portfolio, Long>
 {
-    @Cacheable("portfolio")
-    Optional<Portfolio> findFirstBy();
+        List<Asset> findByPortfolioId(long portfolioId);
+
+    // @Cacheable("portfolio")
+    // Optional<Portfolio> findFirstBy();
 
 }

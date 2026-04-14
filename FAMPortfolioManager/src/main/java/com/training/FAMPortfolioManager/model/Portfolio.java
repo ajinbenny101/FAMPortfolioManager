@@ -29,17 +29,10 @@ import java.util.ArrayList;
 
 
 // IMPORTS NEEDED:
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.FetchType;
+
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.ArrayList;
+
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;

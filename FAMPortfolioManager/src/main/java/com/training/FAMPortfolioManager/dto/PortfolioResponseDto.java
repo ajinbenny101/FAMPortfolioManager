@@ -26,6 +26,26 @@ package com.training.FAMPortfolioManager.dto;
 // import lombok.Setter;
 // import lombok.NoArgsConstructor;
 // import lombok.AllArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class PortfolioResponseDto {
 
+    private List<AssetResponseDto> assets;
+    private Long id;
+    private String name;
+    private String description;
+    private LocalDateTime createdDate;
+    private double totalValue;
+    private double totalReturn;
+    private double totalReturnPercent;
+    private int totalAssets;
 }
