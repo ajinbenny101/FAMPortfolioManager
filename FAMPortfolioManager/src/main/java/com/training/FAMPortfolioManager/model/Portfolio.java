@@ -45,11 +45,12 @@ public class Portfolio {
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Asset> assets = new ArrayList<>();  // this has been generated from Ajin's plan but i do not know how it works
 
-    public Portfolio() {
+    public void addAsset(Asset asset) {
+        assets.add(asset);
+        asset.setPortfolio(this); // Set the portfolio reference in the asset
     }
-
-    public Portfolio(String name, String description) {
-        this.name = name;
-        this.description = description;
+    public void removeAsset(Asset asset) {
+        assets.remove(asset);
+        asset.setPortfolio(null); // Clear the portfolio reference in the asset
     }
 }
