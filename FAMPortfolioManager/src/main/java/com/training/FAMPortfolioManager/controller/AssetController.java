@@ -65,103 +65,103 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/assets")
-public class AssetController {
+public class AssetController {}
 
-    @Autowired
-    private AssetService assetService;
-    private final AssetRepository assetRepository;
+//     @Autowired
+//     private AssetService assetService;
+//     private final AssetRepository assetRepository;
 
     
-    @GetMapping
-    public ResponseEntity<List<AssetResponseDto>> getAllAssets(
-            @RequestParam(required = false) String ticker,
-            @RequestParam(required = false) LocalDate from,
-            @RequestParam(required = false) LocalDate to) {
-
-        LocalDateTime fromDateTime = from != null ? from.atStartOfDay() : null;
-        LocalDateTime toDateTime = to != null ? to.atTime(23, 59, 59) : null;
-
-        List<AssetResponseDto> assets = assetService.filterAssets(ticker, fromDateTime, toDateTime);
-        return ResponseEntity.ok(assets);
-    }
-
-  @GetMapping("/{id}")
-    public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long id) {
-        AssetResponseDto asset = assetService.getAssetById(id);
-        return ResponseEntity.ok(asset);
-    }
-
-    @PostMapping
-    public ResponseEntity<AssetResponseDto> createAsset(@RequestBody AssetRequestDto assetRequest) {
-        AssetResponseDto createdAsset = assetService.addAsset(assetRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<AssetResponseDto> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
-        AssetResponseDto updatedAsset = assetService.updateAsset(id, assetRequest);
-        return ResponseEntity.ok(updatedAsset);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
-        assetService.deleteAsset(id);
-        return ResponseEntity.noContent().build();
-    }
-}
-    
-
-//     public AssetController(AssetRepository assetRepository) {
-//         this.assetRepository = assetRepository;
-//     }
-
 //     @GetMapping
-//     public List<Asset> getAllAssets() {
-//         return assetRepository.findAll();
-//     }
-// // Get asset by ID - GET /api/assets/{id}
-//     @GetMapping("/{id}")
-//     public ResponseEntity<Asset> getAssetById(@PathVariable Long id) {
-//         return assetRepository.findById(id)
-//                 .map(ResponseEntity::ok)
-//                 .orElseGet(() -> ResponseEntity.notFound().build());
-//     }
-// // CreateAsset mapping - accepts AssetRequestDto, creates Asset entity, saves to DB, returns created asset with 201 status
-//     @PostMapping
-//     public Asset createAsset(@RequestBody AssetRequestDto assetRequest) {
-//         Asset asset = new Asset();
-//         asset.setName(assetRequest.getCompanyName());
-//         asset.setDatePurchased(assetRequest.getPurchaseDate());
-//         asset.setTicker(assetRequest.getTicker());
+//     public ResponseEntity<List<AssetResponseDto>> getAllAssets(
+//             @RequestParam(required = false) String ticker,
+//             @RequestParam(required = false) LocalDate from,
+//             @RequestParam(required = false) LocalDate to) {
 
-//         Asset savedAsset = assetRepository.save(asset);
-//         return ResponseEntity.status(HttpStatus.CREATED).body(savedAsset).getBody();
+//         LocalDateTime fromDateTime = from != null ? from.atStartOfDay() : null;
+//         LocalDateTime toDateTime = to != null ? to.atTime(23, 59, 59) : null;
+
+//         List<AssetResponseDto> assets = assetService.filterAssets(ticker, fromDateTime, toDateTime);
+//         return ResponseEntity.ok(assets);
+//     }
+
+//   @GetMapping("/{id}")
+//     public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long id) {
+//         AssetResponseDto asset = assetService.getAssetById(id);
+//         return ResponseEntity.ok(asset);
+//     }
+
+//     @PostMapping
+//     public ResponseEntity<AssetResponseDto> createAsset(@RequestBody AssetRequestDto assetRequest) {
+//         AssetResponseDto createdAsset = assetService.addAsset(assetRequest);
+//         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
 //     }
 
 //     @PutMapping("/{id}")
-//     public ResponseEntity<Asset> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
-//         return assetRepository.findById(id)
-//                 .map(asset -> {
-//                     asset.setName(assetRequest.getCompanyName());
-//                     asset.setDatePurchased(assetRequest.getPurchaseDate());
-//                     asset.setTicker(assetRequest.getTicker());
-//                     Asset updatedAsset = assetRepository.save(asset);
-//                     return ResponseEntity.ok(updatedAsset);
-//                 })
-//                 .orElseGet(() -> ResponseEntity.notFound().build());
+//     public ResponseEntity<AssetResponseDto> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
+//         AssetResponseDto updatedAsset = assetService.updateAsset(id, assetRequest);
+//         return ResponseEntity.ok(updatedAsset);
 //     }
 
 //     @DeleteMapping("/{id}")
 //     public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
-//         return assetRepository.findById(id)
-//                 .map(asset -> {  // If asset is found, delete it and return 204 No Content
-//                     assetRepository.delete(asset);
-//                     System.out.println("Deleted asset with ID: " + id);
-//                     return ResponseEntity.noContent().<Void>build();
-//                 })
-//                 .orElseGet(() -> {
-//                     System.out.println("Asset with ID " + id + " not found for deletion.");
-//                     return ResponseEntity.notFound().build();
-//                 });
+//         assetService.deleteAsset(id);
+//         return ResponseEntity.noContent().build();
 //     }
 // }
+    
+
+        //     public AssetController(AssetRepository assetRepository) {
+        //         this.assetRepository = assetRepository;
+        //     }
+
+        //     @GetMapping
+        //     public List<Asset> getAllAssets() {
+        //         return assetRepository.findAll();
+        //     }
+        // // Get asset by ID - GET /api/assets/{id}
+        //     @GetMapping("/{id}")
+        //     public ResponseEntity<Asset> getAssetById(@PathVariable Long id) {
+        //         return assetRepository.findById(id)
+        //                 .map(ResponseEntity::ok)
+        //                 .orElseGet(() -> ResponseEntity.notFound().build());
+        //     }
+        // // CreateAsset mapping - accepts AssetRequestDto, creates Asset entity, saves to DB, returns created asset with 201 status
+        //     @PostMapping
+        //     public Asset createAsset(@RequestBody AssetRequestDto assetRequest) {
+        //         Asset asset = new Asset();
+        //         asset.setName(assetRequest.getCompanyName());
+        //         asset.setDatePurchased(assetRequest.getPurchaseDate());
+        //         asset.setTicker(assetRequest.getTicker());
+
+        //         Asset savedAsset = assetRepository.save(asset);
+        //         return ResponseEntity.status(HttpStatus.CREATED).body(savedAsset).getBody();
+        //     }
+
+        //     @PutMapping("/{id}")
+        //     public ResponseEntity<Asset> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
+        //         return assetRepository.findById(id)
+        //                 .map(asset -> {
+        //                     asset.setName(assetRequest.getCompanyName());
+        //                     asset.setDatePurchased(assetRequest.getPurchaseDate());
+        //                     asset.setTicker(assetRequest.getTicker());
+        //                     Asset updatedAsset = assetRepository.save(asset);
+        //                     return ResponseEntity.ok(updatedAsset);
+        //                 })
+        //                 .orElseGet(() -> ResponseEntity.notFound().build());
+        //     }
+
+        //     @DeleteMapping("/{id}")
+        //     public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
+        //         return assetRepository.findById(id)
+        //                 .map(asset -> {  // If asset is found, delete it and return 204 No Content
+        //                     assetRepository.delete(asset);
+        //                     System.out.println("Deleted asset with ID: " + id);
+        //                     return ResponseEntity.noContent().<Void>build();
+        //                 })
+        //                 .orElseGet(() -> {
+        //                     System.out.println("Asset with ID " + id + " not found for deletion.");
+        //                     return ResponseEntity.notFound().build();
+        //                 });
+        //     }
+        // }

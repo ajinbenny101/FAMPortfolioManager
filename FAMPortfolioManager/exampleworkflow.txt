@@ -1,0 +1,267 @@
+We will follow one example: “Add Asset”.
+
+MODEL (Asset.java, Portfolio.java)
+
+These define your database structure.
+
+Example from Asset:
+
+@Entity
+@Table(name = "assets")
+
+Meaning:
+
+This class becomes a database table called assets
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
+
+Meaning:
+
+id is the primary key
+database auto-generates it
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "portfolio_id", nullable = false)
+private Portfolio portfolio;
+
+Meaning:
+
+many assets belong to one portfolio
+portfolio_id column is created in DB
+LAZY means load portfolio only when needed
+
+In Portfolio:
+
+@OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL)
+private List<Asset> assets;
+
+Meaning:
+
+one portfolio has many assets
+mappedBy connects to Asset.portfolio
+cascade means saving portfolio can also save assets
+
+Helper method:
+
+public void addAsset(Asset asset) {
+    assets.add(asset);
+    asset.setPortfolio(this);
+}
+
+Meaning:
+
+keeps both sides of relationship correct
+prevents broken data
+DTO (AssetRequestDTO, AssetResponseDTO)
+
+These are simple data holders.
+
+Example:
+
+@Data
+public class AssetRequestDTO {
+    private String name;
+    private String ticker;
+}
+
+Meaning:
+
+holds input data from user
+no logic inside
+just getters and setters
+
+Spring automatically fills this from JSON:
+
+JSON → DTO happens here:
+
+@RequestBody AssetRequestDTO request
+
+Response DTO:
+
+public class AssetResponseDTO {
+    private Long id;
+    private String name;
+}
+
+Meaning:
+
+controls what you send back
+hides internal fields like portfolio
+CONTROLLER (AssetController)
+
+This is the entry point.
+
+@PostMapping("/assets")
+public AssetResponseDTO addAsset(@RequestBody AssetRequestDTO request) {
+    return assetService.addAsset(request);
+}
+
+Line by line:
+
+@PostMapping("/assets")
+
+this method runs when user sends POST request
+
+@RequestBody
+
+convert JSON → DTO
+
+assetService.addAsset(request)
+
+pass work to service
+
+return
+
+send result back to user
+
+Controller does not:
+
+validate deeply
+talk to database
+contain logic
+SERVICE (AssetService)
+
+This is where real work happens.
+
+Portfolio portfolio = portfolioRepository.findById(request.getPortfolioId())
+    .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+
+Meaning:
+
+fetch portfolio
+if not found, throw error
+
+Create entity:
+
+Asset asset = new Asset();
+asset.setName(request.getName());
+
+Meaning:
+
+convert DTO → Entity
+
+Link to portfolio:
+
+asset.setPortfolio(portfolio);
+
+Meaning:
+
+set foreign key relationship
+
+Save:
+
+Asset saved = assetRepository.save(asset);
+
+Meaning:
+
+send entity to repository
+repository saves it
+
+Convert back:
+
+return mapToResponse(saved);
+
+Meaning:
+
+Entity → DTO
+
+Mapping method:
+
+dto.setName(asset.getName());
+
+Meaning:
+
+manually copy fields
+control output
+REPOSITORY (AssetRepository)
+public interface AssetRepository extends JpaRepository<Asset, Long>
+
+Meaning:
+
+Spring creates implementation automatically
+gives you CRUD methods
+
+Examples you can use:
+
+assetRepository.save(asset);
+assetRepository.findById(id);
+assetRepository.delete(asset);
+
+Custom method:
+
+List<Asset> findByPortfolioId(Long portfolioId);
+
+Meaning:
+
+Spring generates query automatically
+no SQL needed
+DATABASE (what actually happens)
+
+When you call:
+
+assetRepository.save(asset);
+
+Spring does:
+
+INSERT INTO assets (name, ticker, portfolio_id, ...)
+VALUES (...);
+
+You do not write this. Spring handles it.
+
+FULL FLOW WITH CODE CONNECTION
+
+Frontend sends JSON
+Controller receives → converts to DTO
+Service:
+reads DTO
+creates Entity
+applies logic
+Repository:
+saves Entity
+Database stores it
+Service:
+converts Entity → DTO
+Controller returns JSON
+
+KEY THING TO UNDERSTAND
+
+Each file transforms the data:
+
+Controller:
+JSON → DTO
+
+Service:
+DTO → Entity
+
+Repository:
+Entity → Database
+
+Then back:
+
+Database → Entity → DTO → JSON
+
+WHY THIS DESIGN IS POWERFUL
+
+If something breaks:
+
+you know where to look
+
+If you change database:
+
+only model changes
+
+If frontend changes:
+
+only DTO changes
+
+If logic changes:
+
+only service changes
+
+FINAL SIMPLE MEMORY
+
+Model = shape of data
+DTO = data wrapper
+Controller = entry point
+Service = logic
+Repository = database access

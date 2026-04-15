@@ -1,0 +1,247 @@
+Here is the full backend workflow, explained like a real system and easy to follow.
+
+Think of this as one complete request going through your app.
+
+FULL FLOW OVERVIEW
+
+Frontend → Controller → DTO → Service → Repository → Database
+Database → Repository → Service → DTO → Controller → Frontend
+
+STEP BY STEP WALKTHROUGH
+
+Example: User adds an asset to a portfolio
+
+STEP 1. Frontend sends request
+
+User clicks “Add Asset”
+
+Frontend sends:
+
+{
+"name": "Apple",
+"ticker": "AAPL",
+"quantity": 10,
+"purchasePrice": 150,
+"portfolioId": 1
+}
+
+STEP 2. Controller receives request
+
+Controller is the entry point.
+
+Code:
+
+```java
+@PostMapping("/assets")
+public AssetResponseDTO addAsset(@RequestBody AssetRequestDTO request) {
+    return assetService.addAsset(request);
+}
+```
+
+What happens:
+
+* JSON is converted into AssetRequestDTO
+* Controller does not process logic
+* It forwards the request
+
+STEP 3. DTO holds the data
+
+AssetRequestDTO now contains:
+
+* name = Apple
+* ticker = AAPL
+* quantity = 10
+* portfolioId = 1
+
+This is clean and safe input data.
+
+STEP 4. Service handles logic
+
+Service is the brain.
+
+Code flow:
+
+1. Check portfolio exists
+
+```java
+Portfolio portfolio = portfolioRepository.findById(request.getPortfolioId())
+    .orElseThrow(...);
+```
+
+2. Create entity
+
+```java
+Asset asset = new Asset();
+asset.setName(request.getName());
+...
+asset.setPortfolio(portfolio);
+```
+
+3. Save asset
+
+```java
+assetRepository.save(asset);
+```
+
+What service does:
+
+* Validates
+* Builds entity
+* Controls relationships
+
+STEP 5. Repository talks to database
+
+You do not see SQL.
+
+Spring handles:
+
+* INSERT INTO assets
+* links portfolio_id
+
+Repository is just:
+
+```java
+assetRepository.save(asset);
+```
+
+Simple and powerful.
+
+STEP 6. Database stores data
+
+Now stored:
+
+Portfolio:
+
+* id = 1
+
+Asset:
+
+* Apple
+* linked to portfolio 1
+
+STEP 7. Service converts to Response DTO
+
+```java
+return mapToResponse(savedAsset);
+```
+
+Entity → DTO
+
+Why:
+
+* Remove unnecessary fields
+* Control output
+
+STEP 8. Controller returns response
+
+Spring converts DTO → JSON:
+
+{
+"id": 1,
+"name": "Apple",
+"ticker": "AAPL",
+"quantity": 10
+}
+
+STEP 9. Frontend receives result
+
+Frontend updates UI:
+
+* Shows new asset
+* Updates portfolio view
+
+NOW EACH LAYER IN ONE LINE
+
+Model
+
+* Defines database structure
+
+DTO
+
+* Defines input and output format
+
+Controller
+
+* Receives and returns data
+
+Service
+
+* Contains logic and decisions
+
+Repository
+
+* Handles database operations
+
+SECOND EXAMPLE: GET PORTFOLIO
+
+Request:
+GET /portfolios/1
+
+Flow:
+
+Controller:
+
+* receives request
+
+Service:
+
+* fetches portfolio
+
+Repository:
+
+* queries database
+
+Service:
+
+* converts portfolio + assets → DTO
+
+Controller:
+
+* returns clean JSON
+
+Response:
+
+{
+"id": 1,
+"name": "My Portfolio",
+"assets": [
+{ "name": "Apple" },
+{ "name": "Tesla" }
+]
+}
+
+MENTAL MODEL YOU SHOULD REMEMBER
+
+Say this in your head:
+
+* Controller receives
+* DTO carries data
+* Service decides
+* Repository fetches
+* Database stores
+
+WHY THIS STRUCTURE WORKS
+
+You can:
+
+* debug easily
+* change logic without breaking everything
+* reuse code
+* scale your app
+
+Each layer has one job. That is the key.
+
+FINAL SIMPLE ANALOGY
+
+Restaurant example:
+
+Customer places order → Controller
+Order slip → DTO
+Chef cooks → Service
+Kitchen staff gets ingredients → Repository
+Fridge stores food → Database
+
+Food goes back the same way.
+
+
+
