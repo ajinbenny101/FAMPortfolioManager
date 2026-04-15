@@ -81,13 +81,11 @@ public class PriceService {
         if (priceValue == null) {
             throw new IllegalStateException("Missing price field in Alpha Vantage response for symbol: " + symbol);
         }
-// We also need to produce and object request for the date that the price has been quoted from.
         try {
             return Double.parseDouble(priceValue.toString());
         } catch (NumberFormatException ex) {
             throw new IllegalStateException("Invalid price value returned by Alpha Vantage for symbol: " + symbol, ex);
         }
-        // For getPriceAtDate, we would implement a similar method that calls the TIME_SERIES_DAILY or TIME_SERIES_DAILY_ADJUSTED function and parses the historical data to find the price closest to the specified date.
     }
 }
 
