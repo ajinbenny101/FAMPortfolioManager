@@ -1,0 +1,68 @@
+@host = http://localhost:8080
+@alphavantage_api_key = L4RRUAIUM7R4YNYB
+@symbol = IBM
+
+### Create a portfolio
+POST {{host}}/api/portfolios
+Content-Type: application/json
+
+{
+  "name": "Retirement Portfolio",
+  "description": "Long-term investment portfolio"
+}
+
+### Get all portfolios
+GET {{host}}/api/portfolios
+
+### Get portfolio by ID
+GET {{host}}/api/portfolios/1
+
+### Update portfolio
+PUT {{host}}/api/portfolios/1
+Content-Type: application/json
+
+{
+  "name": "Retirement Portfolio - Updated",
+  "description": "Updated long-term investment portfolio"
+}
+
+### Create an asset in portfolio 1
+POST {{host}}/api/assets
+Content-Type: application/json
+
+{
+  "ticker": "IBM",
+  "companyName": "IBM Corporation",
+  "quantity": 10,
+  "purchasePrice": 135.00,
+  "purchaseDate": "2026-04-15T09:30:00",
+  "portfolioId": 1
+}
+
+### Get all assets for portfolio 1 (should include live current price data)
+GET {{host}}/api/assets?portfolioId=1
+
+### Get asset by ID
+GET {{host}}/api/assets/1
+
+### Update asset 1
+PUT {{host}}/api/assets/1
+Content-Type: application/json
+
+{
+  "ticker": "IBM",
+  "companyName": "IBM Corporation",
+  "quantity": 15,
+  "purchasePrice": 132.50,
+  "purchaseDate": "2026-04-15T09:30:00",
+  "portfolioId": 1
+}
+
+### Delete asset 1
+DELETE {{host}}/api/assets/1
+
+### Delete portfolio 1
+DELETE {{host}}/api/portfolios/1
+
+### Pull live price data from Alpha Vantage API
+GET https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={{symbol}}&apikey={{alphavantage_api_key}}

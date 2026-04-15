@@ -47,7 +47,7 @@ import lombok.AllArgsConstructor;
 public class Portfolio {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long Id;
 
     private String name;
     private String description;

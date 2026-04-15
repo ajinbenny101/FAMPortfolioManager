@@ -40,7 +40,7 @@ import lombok.AllArgsConstructor;
 public class PortfolioResponseDto {
 
     private List<AssetResponseDto> assets;
-    private Long id;
+    private Long Id;
     private String name;
     private String description;
     private LocalDateTime createdDate;

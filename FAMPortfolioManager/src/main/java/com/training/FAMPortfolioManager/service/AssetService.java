@@ -7,6 +7,7 @@ import com.training.FAMPortfolioManager.repository.PortfolioRepository;
 import com.training.FAMPortfolioManager.dto.AssetRequestDto;
 import com.training.FAMPortfolioManager.dto.AssetResponseDto;
 
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -47,10 +48,12 @@ public class AssetService {
 
     private final AssetRepository assetRepository;
     private final PortfolioRepository portfolioRepository;
+    private final PriceService priceService;
 
-    public AssetService(AssetRepository assetRepository, PortfolioRepository portfolioRepository) {
+    public AssetService(AssetRepository assetRepository, PortfolioRepository portfolioRepository, PriceService priceService) {
         this.assetRepository = assetRepository;
         this.portfolioRepository = portfolioRepository;
+        this.priceService = priceService;
     }
 
     // CREATE
@@ -103,6 +106,12 @@ public class AssetService {
         asset.setPurchasePrice(request.getPurchasePrice());
         asset.setDatePurchased(request.getPurchaseDate());
 
+        if (!asset.getPortfolio().getId().equals(request.getPortfolioId())) {
+            Portfolio newPortfolio = portfolioRepository.findById(request.getPortfolioId())
+                    .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+            asset.setPortfolio(newPortfolio);
+        }
+
         Asset updated = assetRepository.save(asset);
 
         return mapToResponse(updated);
@@ -120,6 +129,14 @@ public class AssetService {
     // MAPPING
     private AssetResponseDto mapToResponse(Asset asset) {
 
+        double currentPrice = priceService.getCurrentPrice(asset.getTicker());
+        double marketValue = currentPrice * asset.getQuantity();
+        double profitLoss = (currentPrice - asset.getPurchasePrice()) * asset.getQuantity();
+        double profitLossPercent = 0.0;
+        if (asset.getPurchasePrice() > 0 && asset.getQuantity() > 0) {
+            profitLossPercent = (profitLoss / (asset.getPurchasePrice() * asset.getQuantity())) * 100.0;
+        }
+
         AssetResponseDto dto = new AssetResponseDto();
         dto.setId(asset.getId());
         dto.setCompanyName(asset.getCompanyName());
@@ -127,6 +144,10 @@ public class AssetService {
         dto.setQuantity(asset.getQuantity());
         dto.setPurchasePrice(asset.getPurchasePrice());
         dto.setPurchaseDate(asset.getDatePurchased());
+        dto.setCurrentPrice(currentPrice);
+        dto.setMarketValue(marketValue);
+        dto.setProfitLoss(profitLoss);
+        dto.setProfitLossPercent(profitLossPercent);
 
         return dto;
     }

@@ -2,7 +2,6 @@ package com.training.FAMPortfolioManager.dto;
 
 import java.time.LocalDateTime;
 
-import com.training.FAMPortfolioManager.model.AssetType;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -54,7 +53,6 @@ public class AssetResponseDto {
     private double quantity;
     private double purchasePrice;
     private LocalDateTime purchaseDate;
-    private AssetType assetType;
     private double currentPrice;        // Added: live market price
     private double marketValue;         // Added: quantity * currentPrice
     private double profitLoss;          // Added: (currentPrice - purchasePrice) * quantity

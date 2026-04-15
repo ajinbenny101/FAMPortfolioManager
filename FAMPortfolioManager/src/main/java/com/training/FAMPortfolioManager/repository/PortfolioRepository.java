@@ -14,14 +14,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 // import org.springframework.cache.annotation.Cacheable;
 // import org.springframework.stereotype.Repository;
 
-import com.training.FAMPortfolioManager.model.Asset;
+// import com.training.FAMPortfolioManager.model.Asset;
 import com.training.FAMPortfolioManager.model.Portfolio;
 
-import java.util.List;
+// import java.util.List;
 // import java.util.Optional;
 public interface PortfolioRepository extends JpaRepository<Portfolio, Long>
 {
-        List<Asset> findByPortfolioId(long portfolioId);
+        // List<Asset> findByPortfolioId(long Id);
 
     // @Cacheable("portfolio")
     // Optional<Portfolio> findFirstBy();
