@@ -5,7 +5,7 @@ import com.training.FAMPortfolioManager.PortfolioApplication;
 import com.training.FAMPortfolioManager.repository.AssetRepository;
 import com.training.FAMPortfolioManager.model.Asset;
 import com.training.FAMPortfolioManager.dto.AssetRequestDto;
-import com.training.FAMPortfolioManager.model.AssetType;
+
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +30,7 @@ import jakarta.persistence.Inheritance;
 
 import com.training.FAMPortfolioManager.dto.AssetRequestDto;
 import com.training.FAMPortfolioManager.dto.AssetResponseDto;
-import com.training.FAMPortfolioManager.model.AssetType;
+
 import java.time.LocalDate;
 
 
@@ -185,3 +185,5 @@ import java.time.LocalDate;
 //         }
 //     }
 // }
+
+
