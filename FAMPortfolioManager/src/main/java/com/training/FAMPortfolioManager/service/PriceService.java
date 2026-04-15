@@ -1,5 +1,13 @@
 package com.training.FAMPortfolioManager.service;
 
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
 // PriceService - external price data service
 // Annotate with @Service
 // DEPENDENCY INJECTION:
@@ -25,6 +33,61 @@ package com.training.FAMPortfolioManager.service;
 // import java.util.Optional;
 // import org.springframework.http.ResponseEntity;
 // import org.json.JSONObject; // or Jackson ObjectMapper
+
+    @Service
 public class PriceService {
+
+   
+    @Value("${alphavantage.api.key}")
+    private String apiKey;
+
+    @Value("${alphavantage.base.url}")
+    private String baseUrl;
+
+    private final RestTemplate restTemplate;
     
+    public PriceService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Cacheable(value = "stockPrices", key = "#symbol")
+    public double getCurrentPrice(String symbol) {
+        if (apiKey == null || apiKey.isBlank() || "YOUR_KEY".equalsIgnoreCase(apiKey)) {
+            throw new IllegalStateException("Alpha Vantage API key is not configured. Set alphavantage.api.key in application.properties.");
+        }
+
+        String url = UriComponentsBuilder.fromUriString(baseUrl)
+                .queryParam("function", "GLOBAL_QUOTE")
+                .queryParam("symbol", symbol)
+                .queryParam("apikey", apiKey)
+                .toUriString();
+
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        if (response == null || response.isEmpty()) {
+            throw new IllegalStateException("No response from Alpha Vantage for symbol: " + symbol);
+        }
+
+        if (response.containsKey("Note")) {
+            throw new IllegalStateException("Alpha Vantage rate limit reached. Please retry shortly.");
+        }
+
+        Object quoteObject = response.get("Global Quote");
+        if (!(quoteObject instanceof Map<?, ?> quote)) {
+            throw new IllegalStateException("Missing Global Quote in Alpha Vantage response for symbol: " + symbol);
+        }
+
+        Object priceValue = quote.get("05. price");
+        if (priceValue == null) {
+            throw new IllegalStateException("Missing price field in Alpha Vantage response for symbol: " + symbol);
+        }
+// We also need to produce and object request for the date that the price has been quoted from.
+        try {
+            return Double.parseDouble(priceValue.toString());
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid price value returned by Alpha Vantage for symbol: " + symbol, ex);
+        }
+        // For getPriceAtDate, we would implement a similar method that calls the TIME_SERIES_DAILY or TIME_SERIES_DAILY_ADJUSTED function and parses the historical data to find the price closest to the specified date.
+    }
 }
+
