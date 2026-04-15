@@ -125,63 +125,63 @@ import java.time.LocalDate;
 //     }
 // }
 
-@RestController
-@RequestMapping("/api/assets")
-public class AssetController {
-    private final repository.AssetRepository assetRepository_1;
-    private final repository.AssetRepository assetRepository;
-    private final AssetService assetService;
+// @RestController
+// @RequestMapping("/api/assets")
+// public class AssetController {
+//     private final repository.AssetRepository assetRepository_1;
+//     private final repository.AssetRepository assetRepository;
+//     private final AssetService assetService;
 
-    @Autowired
-    public AssetController(AssetService assetService, repository.AssetRepository assetRepository, repository.AssetRepository assetRepository_1) {
-        this.assetService = assetService;
-        this.assetRepository = assetRepository;
-        this.assetRepository_1 = assetRepository_1;
-    }
+//     @Autowired
+//     public AssetController(AssetService assetService, repository.AssetRepository assetRepository, repository.AssetRepository assetRepository_1) {
+//         this.assetService = assetService;
+//         this.assetRepository = assetRepository;
+//         this.assetRepository_1 = assetRepository_1;
+//     }
 
-    @GetMapping
-    public List<AssetResponseDto> getAllAssets(
-            @RequestParam(required = false) String ticker,
-            @RequestParam(required = false) AssetType type,
-            @RequestParam(required = false) LocalDate from,
-            @RequestParam(required = false) LocalDate to
+//     @GetMapping
+//     public List<AssetResponseDto> getAllAssets(
+//             @RequestParam(required = false) String ticker,
+//             @RequestParam(required = false) AssetType type,
+//             @RequestParam(required = false) LocalDate from,
+//             @RequestParam(required = false) LocalDate to
 
-            LocalDateTime fromDateTime = from != null ? from.atStartOfDay() : null;
-            LocalDateTime toDateTime = to != null ? to.atTime(23, 59, 59) : null;
+//             LocalDateTime fromDateTime = from != null ? from.atStartOfDay() : null;
+//             LocalDateTime toDateTime = to != null ? to.atTime(23, 59, 59) : null;
 
-            List<AssetResponseDto> assets = assetService.filterAssets(ticker, type, fromDateTime, toDateTime);
-            return ResponseEntity.ok(assets);
+//             List<AssetResponseDto> assets = assetService.filterAssets(ticker, type, fromDateTime, toDateTime);
+//             return ResponseEntity.ok(assets);
 
-    }
-    @GetMapping("/{id}")
-    public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long id) {
-        return assetService.getAssetById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+//     }
+//     @GetMapping("/{id}")
+//     public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long id) {
+//         return assetService.getAssetById(id)
+//                 .map(ResponseEntity::ok)
+//                 .orElseGet(() -> ResponseEntity.notFound().build());
+//     }
 
-    @PostMapping
-    public ResponseEntity<AssetResponseDto> createAsset(@RequestBody AssetRequestDto assetRequest) {
-        AssetResponseDto createdAsset = assetService.createAsset(assetRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
-    }
+//     @PostMapping
+//     public ResponseEntity<AssetResponseDto> createAsset(@RequestBody AssetRequestDto assetRequest) {
+//         AssetResponseDto createdAsset = assetService.createAsset(assetRequest);
+//         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
+//     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<AssetResponseDto> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
-        return assetService.updateAsset(id, assetRequest)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+//     @PutMapping("/{id}")
+//     public ResponseEntity<AssetResponseDto> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
+//         return assetService.updateAsset(id, assetRequest)
+//                 .map(ResponseEntity::ok)
+//                 .orElseGet(() -> ResponseEntity.notFound().build());
+//     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
-        boolean deleted = assetService.deleteAsset(id);
-        if (deleted) {
-            System.out.println("Deleted asset with ID: " + id);
-            return ResponseEntity.noContent().build();
-        } else {
-            System.out.println("Asset with ID " + id + " not found for deletion.");
-            return ResponseEntity.notFound().build();
-        }
-    }
-}
+//     @DeleteMapping("/{id}")
+//     public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
+//         boolean deleted = assetService.deleteAsset(id);
+//         if (deleted) {
+//             System.out.println("Deleted asset with ID: " + id);
+//             return ResponseEntity.noContent().build();
+//         } else {
+//             System.out.println("Asset with ID " + id + " not found for deletion.");
+//             return ResponseEntity.notFound().build();
+//         }
+//     }
+// }
