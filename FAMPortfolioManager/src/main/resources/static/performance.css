@@ -1,0 +1,452 @@
+/* ============================================================
+   performance.css — Performance page specific styles
+   Builds on top of styles.css (shared base)
+   ============================================================ */
+
+/* ── Page layout ──────────────────────────────────────────── */
+.perf-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Page header ──────────────────────────────────────────── */
+.perf-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.25rem 0 0.1rem;
+}
+
+.perf-page-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.perf-page-sub {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.perf-header-meta {
+  text-align: right;
+}
+
+.perf-meta-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+}
+
+.perf-meta-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── Portfolio card strip ─────────────────────────────────── */
+.perf-portfolio-strip {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* ── Portfolio card ───────────────────────────────────────── */
+.perf-portfolio-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+  min-width: 180px;
+  flex: 1 1 180px;
+  max-width: 280px;
+  position: relative;
+  user-select: none;
+}
+
+.perf-portfolio-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 12px rgba(43, 120, 228, 0.12);
+  transform: translateY(-1px);
+}
+
+.perf-portfolio-card.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(43, 120, 228, 0.14);
+}
+
+.perf-portfolio-card:hover .stock-hover-list,
+.perf-portfolio-card:focus-within .stock-hover-list {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.ppc__label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.ppc__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.15rem;
+  line-height: 1.2;
+}
+
+.ppc__meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.ppc__pl {
+  font-weight: 600;
+}
+
+.ppc__pl.positive { color: var(--positive); }
+.ppc__pl.negative { color: #c62828; }
+
+.ppc__stocks {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.ppc__return-bar {
+  margin-top: 0.6rem;
+  height: 4px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.ppc__return-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.ppc__return-bar-fill.positive { background: var(--positive); }
+.ppc__return-bar-fill.negative { background: #c62828; }
+
+/* ── Hover stock list tooltip ─────────────────────────────── */
+.stock-hover-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 200;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 28px rgba(28, 36, 56, 0.14);
+  padding: 0.65rem 0.1rem 0.55rem;
+  min-width: 240px;
+  max-width: 300px;
+  width: max-content;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.stock-hover-list__title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 0.75rem 0.45rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.35rem;
+}
+
+.stock-hover-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.84rem;
+  gap: 1rem;
+  transition: background 0.1s;
+}
+
+.stock-hover-list__row:hover {
+  background: #f5f8ff;
+  border-radius: 6px;
+}
+
+.stock-hover-list__ticker {
+  font-weight: 700;
+  color: var(--text);
+  min-width: 48px;
+}
+
+.stock-hover-list__company {
+  color: var(--muted);
+  font-size: 0.78rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stock-hover-list__pl {
+  font-weight: 600;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.stock-hover-list__pl.positive { color: var(--positive); }
+.stock-hover-list__pl.negative { color: #c62828; }
+
+/* ── KPI stats section ────────────────────────────────────── */
+.perf-stats-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem 1.15rem;
+}
+
+.perf-stats-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.perf-stats-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.perf-stats-badge {
+  background: #eef2f9;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.15rem 0.6rem;
+}
+
+.perf-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+}
+
+.perf-kpi-card {
+  background: #fafbff;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  transition: border-color 0.15s;
+}
+
+.perf-kpi-card:hover {
+  border-color: var(--primary);
+}
+
+.perf-kpi-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.perf-kpi-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.perf-kpi-value--sm {
+  font-size: 0.95rem;
+}
+
+.perf-kpi-value.positive { color: var(--positive); }
+.perf-kpi-value.negative { color: #c62828; }
+
+/* ── Chart section ────────────────────────────────────────── */
+.perf-chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.perf-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.perf-chart-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.perf-chart-sub {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.perf-chart-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.perf-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.perf-control-group label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.perf-control-group select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.42rem 0.65rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: #fff;
+  cursor: pointer;
+  min-width: 150px;
+  transition: border-color 0.15s;
+}
+
+.perf-control-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ── Chart legend strip ───────────────────────────────────── */
+.perf-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  min-height: 22px;
+}
+
+.legend-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.18rem 0.55rem 0.18rem 0.35rem;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.legend-chip:hover {
+  background: #f0f5ff;
+  border-color: var(--border);
+}
+
+.legend-chip.hidden {
+  opacity: 0.4;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Chart canvas ─────────────────────────────────────────── */
+.perf-chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 340px;
+}
+
+.perf-chart-note {
+  margin-top: 0.85rem;
+  font-size: 0.77rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 0.65rem;
+  line-height: 1.5;
+}
+
+.perf-chart-note code {
+  background: #eef2f9;
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+
+/* ── Loading / empty state ────────────────────────────────── */
+.perf-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .perf-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 820px) {
+  .perf-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .perf-chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stock-hover-list {
+    left: 0;
+    right: 0;
+    max-width: 100%;
+    min-width: unset;
+  }
+}
+
+@media (max-width: 520px) {
+  .perf-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .perf-page-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

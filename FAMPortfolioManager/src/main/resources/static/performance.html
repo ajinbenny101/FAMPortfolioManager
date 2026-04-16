@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Performance — Portfolio Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="performance.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h1>Portfolio Manager</h1>
+      <nav>
+        <button class="nav-item" onclick="window.location.href='index.html'">Dashboard</button>
+        <button class="nav-item" onclick="window.location.href='holdings.html'">Holdings</button>
+        <button class="nav-item active">Performance</button>
+        <button class="nav-item" disabled>Settings</button>
+      </nav>
+    </aside>
+
+    <main class="content perf-content">
+
+      <!-- Page header -->
+      <header class="perf-page-header">
+        <div>
+          <h2 class="perf-page-title">Performance</h2>
+          <p class="perf-page-sub">Track returns, profit/loss and historical trends across all your portfolios.</p>
+        </div>
+        <div class="perf-header-meta">
+          <span class="perf-meta-label">Last updated</span>
+          <span class="perf-meta-value" id="lastUpdated">—</span>
+        </div>
+      </header>
+
+      <!-- ── PORTFOLIO CARDS STRIP ─────────────────────────────────────── -->
+      <section id="perfPortfolioStrip" class="perf-portfolio-strip">
+        <!-- populated by JS -->
+      </section>
+
+      <!-- ── SELECTED PORTFOLIO STATS ──────────────────────────────────── -->
+      <section class="perf-stats-section" id="perfStatsSection">
+        <div class="perf-stats-header">
+          <h3 class="perf-stats-title" id="perfSelectedName">—</h3>
+          <span class="perf-stats-badge" id="perfStockCount">0 stocks</span>
+        </div>
+        <div class="perf-kpi-grid">
+          <div class="perf-kpi-card">
+            <span class="perf-kpi-label">Total Value</span>
+            <span class="perf-kpi-value" id="kpiTotalValue">$0.00</span>
+          </div>
+          <div class="perf-kpi-card">
+            <span class="perf-kpi-label">Cost Basis</span>
+            <span class="perf-kpi-value" id="kpiCostBasis">$0.00</span>
+          </div>
+          <div class="perf-kpi-card">
+            <span class="perf-kpi-label">Profit / Loss</span>
+            <span class="perf-kpi-value" id="kpiProfitLoss">$0.00</span>
+          </div>
+          <div class="perf-kpi-card">
+            <span class="perf-kpi-label">Total Return</span>
+            <span class="perf-kpi-value" id="kpiReturn">0.00%</span>
+          </div>
+          <div class="perf-kpi-card">
+            <span class="perf-kpi-label">Best Performer</span>
+            <span class="perf-kpi-value perf-kpi-value--sm" id="kpiBest">—</span>
+          </div>
+          <div class="perf-kpi-card">
+            <span class="perf-kpi-label">Worst Performer</span>
+            <span class="perf-kpi-value perf-kpi-value--sm" id="kpiWorst">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── STOCK PERFORMANCE CHART ────────────────────────────────────── -->
+      <section class="card perf-chart-section">
+        <div class="perf-chart-header">
+          <div>
+            <h3 class="perf-chart-title">Stock Performance Over Time</h3>
+            <p class="perf-chart-sub">Historical estimated value progression per stock</p>
+          </div>
+          <div class="perf-chart-controls">
+            <div class="perf-control-group">
+              <label for="perfStockSelect">Stock</label>
+              <select id="perfStockSelect"></select>
+            </div>
+            <div class="perf-control-group">
+              <label for="perfRangeSelect">Range</label>
+              <select id="perfRangeSelect">
+                <option value="3m">3 Months</option>
+                <option value="6m">6 Months</option>
+                <option value="1y" selected>1 Year</option>
+                <option value="2y">2 Years</option>
+                <option value="all">All Time</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend strip -->
+        <div class="perf-chart-legend" id="perfChartLegend"></div>
+
+        <div class="perf-chart-wrap">
+          <canvas id="perfStockChart"></canvas>
+        </div>
+
+        <!-- Chart footnote -->
+        <p class="perf-chart-note">
+          ℹ Performance data is estimated from purchase price to current price over the selected time range.
+          Connect your backend to supply real historical OHLC data via <code>/api/assets/{id}/history</code>.
+        </p>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Stock hover tooltip portal (rendered by JS) -->
+  <div class="stock-tooltip" id="stockTooltip" role="tooltip" aria-hidden="true"></div>
+
+  <script src="app.js"></script>
+  <script src="performance.js"></script>
+</body>
+</html>
