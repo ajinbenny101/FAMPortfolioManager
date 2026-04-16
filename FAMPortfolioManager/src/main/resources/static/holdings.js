@@ -1,6 +1,6 @@
 /* ============================================================
    holdings.js — Holdings page logic
-   Depends on: app.js (for apiGet, formatCurrency, fallbackData)
+  Depends on: app.js (for apiGet/apiPost/apiPut/apiDelete, formatCurrency)
    ============================================================ */
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -9,21 +9,6 @@ let hAllAssets = [];            // all assets for active portfolio (raw)
 let hFilteredAssets = [];       // after search/filter
 let hActivePortfolioId = null;  // currently selected portfolio id
 let hSelectedAssetIds = new Set();
-
-// Extend fallback with datePurchased for demo purposes
-(function patchFallbackDates() {
-  const dates = {
-    1: ["2021-03-15", "2020-11-02", "2019-07-22", "2022-01-10"],
-    2: ["2020-05-18", "2018-09-30", "2021-12-01", "2019-04-14"]
-  };
-  Object.entries(fallbackData.assetsByPortfolio).forEach(([pid, assets]) => {
-    assets.forEach((a, i) => {
-      if (!a.datePurchased) {
-        a.datePurchased = (dates[pid] && dates[pid][i]) || "2020-01-01";
-      }
-    });
-  });
-})();
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const portfolioStripEl    = document.getElementById("portfolioStrip");
@@ -71,7 +56,7 @@ async function loadAllPortfolioSummaries() {
     try {
       assets = await apiGet(`/api/assets?portfolioId=${portfolio.id}`);
     } catch {
-      assets = fallbackData.assetsByPortfolio[portfolio.id] || [];
+      assets = [];
     }
 
     const { totalValue, totalCost, totalPL } = computeAssetSummary(assets);
@@ -261,8 +246,8 @@ async function switchPortfolio(portfolioId) {
     hAllAssets = assets;
     setHoldingsStatus(`${assets.length} holding${assets.length !== 1 ? "s" : ""} loaded.`);
   } catch (err) {
-    hAllAssets = fallbackData.assetsByPortfolio[portfolioId] || [];
-    setHoldingsStatus(`Using demo data: ${err.message}`, true);
+    hAllAssets = [];
+    setHoldingsStatus(`Failed to load holdings: ${err.message}`, true);
   }
 
   applyFiltersAndRender();
@@ -295,7 +280,7 @@ function populatePortfolioDropdowns() {
   });
 }
 
-// ── CRUD handlers (wired to backend; fallback to local state for demo) ─────
+// ── CRUD handlers (backend-only) ────────────────────────────────────────────
 
 // Add stock
 document.getElementById("btnAddStock").addEventListener("click", () => {
@@ -319,30 +304,28 @@ document.getElementById("btnConfirmAddStock").addEventListener("click", async ()
   const company    = document.getElementById("addCompanyName").value.trim();
   const quantity   = parseFloat(document.getElementById("addQuantity").value);
   const purchase   = parseFloat(document.getElementById("addPurchasePrice").value);
-  const current    = parseFloat(document.getElementById("addCurrentPrice").value) || purchase;
   const date       = document.getElementById("addDatePurchased").value;
   const portfolioId = parseInt(document.getElementById("addPortfolioSelect").value, 10);
 
-  if (!ticker || !company || isNaN(quantity) || isNaN(purchase) || !date) {
+  if (!ticker || !company || isNaN(quantity) || isNaN(purchase) || !date || Number.isNaN(portfolioId)) {
     showError("addStockError", "Please fill in all required fields.");
     return;
   }
 
-  const payload = { ticker, companyName: company, quantity, purchasePrice: purchase, currentPrice: current, datePurchased: date, portfolioId };
+  const payload = {
+    ticker,
+    companyName: company,
+    quantity,
+    purchasePrice: purchase,
+    purchaseDate: toApiDateTime(date),
+    portfolioId
+  };
 
   try {
     await apiPost("/api/assets", payload);
-  } catch {
-    // Fallback: add to local demo state
-    const newId = Date.now();
-    const newAsset = {
-      id: newId,
-      ...payload,
-      marketValue: quantity * current,
-      profitLoss: quantity * (current - purchase)
-    };
-    if (!fallbackData.assetsByPortfolio[portfolioId]) fallbackData.assetsByPortfolio[portfolioId] = [];
-    fallbackData.assetsByPortfolio[portfolioId].push(newAsset);
+  } catch (err) {
+    showError("addStockError", `Could not add stock: ${err.message}`);
+    return;
   }
 
   closeModal("modalAddStock");
@@ -373,7 +356,7 @@ document.getElementById("btnUpdateStock").addEventListener("click", () => {
   document.getElementById("updateQuantity").value = asset.quantity;
   document.getElementById("updatePurchasePrice").value = asset.purchasePrice;
   document.getElementById("updateCurrentPrice").value = asset.currentPrice;
-  document.getElementById("updateDatePurchased").value = asset.datePurchased || "";
+  document.getElementById("updateDatePurchased").value = (asset.datePurchased || "").toString().slice(0, 10);
   openModal("modalUpdateStock");
 });
 
@@ -384,25 +367,27 @@ document.getElementById("btnConfirmUpdateStock").addEventListener("click", async
   const company  = document.getElementById("updateCompanyName").value.trim();
   const quantity = parseFloat(document.getElementById("updateQuantity").value);
   const purchase = parseFloat(document.getElementById("updatePurchasePrice").value);
-  const current  = parseFloat(document.getElementById("updateCurrentPrice").value);
   const date     = document.getElementById("updateDatePurchased").value;
 
-  if (!ticker || !company || isNaN(quantity) || isNaN(purchase) || isNaN(current)) {
+  if (!ticker || !company || isNaN(quantity) || isNaN(purchase)) {
     showError("updateStockError", "Please fill in all required fields.");
     return;
   }
 
-  const payload = { ticker, companyName: company, quantity, purchasePrice: purchase, currentPrice: current, datePurchased: date };
+  const payload = {
+    ticker,
+    companyName: company,
+    quantity,
+    purchasePrice: purchase,
+    purchaseDate: toApiDateTime(date),
+    portfolioId: Number(hActivePortfolioId)
+  };
 
   try {
     await apiPut(`/api/assets/${id}`, payload);
-  } catch {
-    // Fallback: update local demo state
-    const pool = fallbackData.assetsByPortfolio[hActivePortfolioId] || [];
-    const idx = pool.findIndex(a => String(a.id) === String(id));
-    if (idx >= 0) {
-      pool[idx] = { ...pool[idx], ...payload, marketValue: quantity * current, profitLoss: quantity * (current - purchase) };
-    }
+  } catch (err) {
+    showError("updateStockError", `Could not update stock: ${err.message}`);
+    return;
   }
 
   closeModal("modalUpdateStock");
@@ -436,13 +421,9 @@ document.getElementById("btnConfirmRemoveStock").addEventListener("click", async
   for (const id of ids) {
     try {
       await apiDelete(`/api/assets/${id}`);
-    } catch {
-      // Fallback: remove from local demo state
-      const pool = fallbackData.assetsByPortfolio[hActivePortfolioId];
-      if (pool) {
-        const idx = pool.findIndex(a => a.id === id);
-        if (idx >= 0) pool.splice(idx, 1);
-      }
+    } catch (err) {
+      showError("removeStockError", `Could not remove stock: ${err.message}`);
+      return;
     }
   }
 
@@ -465,16 +446,11 @@ document.getElementById("btnConfirmAddPortfolio").addEventListener("click", asyn
   if (!name) { showError("addPortfolioError", "Portfolio name is required."); return; }
 
   try {
-    const created = await apiPost("/api/portfolios", { name });
+    const created = await apiPost("/api/portfolios", { name, description: "" });
     hPortfolios.push(created);
-    fallbackData.portfolios.push(created);
-    fallbackData.assetsByPortfolio[created.id] = [];
-  } catch {
-    const newId = Date.now();
-    const newPortfolio = { id: newId, name };
-    hPortfolios.push(newPortfolio);
-    fallbackData.portfolios.push(newPortfolio);
-    fallbackData.assetsByPortfolio[newId] = [];
+  } catch (err) {
+    showError("addPortfolioError", `Could not create portfolio: ${err.message}`);
+    return;
   }
 
   closeModal("modalAddPortfolio");
@@ -496,15 +472,19 @@ document.getElementById("btnConfirmUpdatePortfolio").addEventListener("click", a
   const name = document.getElementById("updatePortfolioName").value.trim();
   if (!name) { showError("updatePortfolioError", "New name is required."); return; }
 
-  try {
-    await apiPut(`/api/portfolios/${id}`, { name });
-  } catch { /* ignore */ }
+  const existing = hPortfolios.find(x => x.id === id);
+  const description = existing?.description ?? "";
 
-  // Update local state regardless
+  try {
+    await apiPut(`/api/portfolios/${id}`, { name, description });
+  } catch (err) {
+    showError("updatePortfolioError", `Could not update portfolio: ${err.message}`);
+    return;
+  }
+
+  // Update local state after successful backend update
   const p = hPortfolios.find(x => x.id === id);
   if (p) p.name = name;
-  const fp = fallbackData.portfolios.find(x => x.id === id);
-  if (fp) fp.name = name;
 
   closeModal("modalUpdatePortfolio");
   await loadAllPortfolioSummaries();
@@ -523,11 +503,12 @@ document.getElementById("btnConfirmRemovePortfolio").addEventListener("click", a
 
   try {
     await apiDelete(`/api/portfolios/${id}`);
-  } catch { /* ignore */ }
+  } catch (err) {
+    showError("removePortfolioError", `Could not remove portfolio: ${err.message}`);
+    return;
+  }
 
   hPortfolios = hPortfolios.filter(p => p.id !== id);
-  fallbackData.portfolios = fallbackData.portfolios.filter(p => p.id !== id);
-  delete fallbackData.assetsByPortfolio[id];
 
   if (String(hActivePortfolioId) === String(id)) {
     hActivePortfolioId = hPortfolios[0]?.id ?? null;
@@ -579,43 +560,15 @@ clearFiltersEl.addEventListener("click", () => {
   applyFiltersAndRender();
 });
 
-// ── HTTP helpers (POST, PUT, DELETE) ──────────────────────────────────────
-const API_BASE_H = window.location.origin;
-
-async function apiPost(path, body) {
-  const res = await fetch(`${API_BASE_H}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
-  return res.json();
-}
-
-async function apiPut(path, body) {
-  const res = await fetch(`${API_BASE_H}${path}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`PUT ${path} failed: ${res.status}`);
-  return res.json().catch(() => ({}));
-}
-
-async function apiDelete(path) {
-  const res = await fetch(`${API_BASE_H}${path}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(`DELETE ${path} failed: ${res.status}`);
-}
-
 // ── Init ───────────────────────────────────────────────────────────────────
 async function holdingsInit() {
   setHoldingsStatus("Loading portfolios…");
 
   try {
     hPortfolios = await apiGet("/api/portfolios");
-  } catch {
-    hPortfolios = [...fallbackData.portfolios];
-    setHoldingsStatus("Using demo data — backend unavailable.", true);
+  } catch (err) {
+    hPortfolios = [];
+    setHoldingsStatus(`Failed to load portfolios: ${err.message}`, true);
   }
 
   if (!hPortfolios.length) {

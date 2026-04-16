@@ -1,6 +1,6 @@
 /* ============================================================
    performance.js — Performance page logic
-   Depends on: app.js (for fallbackData, formatCurrency)
+  Depends on: app.js (for apiGet, formatCurrency)
    ============================================================ */
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -52,65 +52,44 @@ function now() {
   return new Date();
 }
 
-// ── Generate simulated history ─────────────────────────────────────────
+// ── Generate deterministic history ─────────────────────────────────────
 /**
- * Build a plausible price series for an asset.
- * Starts from purchasePrice on datePurchased, ends near currentPrice today.
- * Uses a seeded random walk so it stays stable within a session.
+ * Build an estimated deterministic series for an asset.
+ * Starts at purchase price on purchase date and linearly interpolates to current price today.
  */
 function generateHistory(asset, rangeDays) {
   const endDate   = now();
   const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - rangeDays);
 
-  // How many data points?
-  const totalDays = Math.min(rangeDays, 730);
-  const step      = Math.max(1, Math.floor(totalDays / 80)); // ~80 points max
+  const totalDays = Math.max(1, Math.min(rangeDays, 1825));
+  const step = Math.max(1, Math.floor(totalDays / 80));
 
   const purchaseDate = asset.datePurchased
     ? new Date(asset.datePurchased)
     : new Date(endDate.getFullYear() - 2, 0, 1);
 
-  const points = [];
-  let d = new Date(startDate);
+  const seriesStart = purchaseDate > startDate ? purchaseDate : startDate;
+  const basePrice = Number(asset.purchasePrice ?? 0);
+  const endPrice = Number(asset.currentPrice ?? basePrice);
 
-  // Simple seeded pseudo-random based on ticker
-  let seed = asset.ticker.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  function rand() {
-    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-    return (seed >>> 0) / 4294967296;
+  // If purchase is in the future relative to the selected range, no data.
+  if (seriesStart > endDate) {
+    return [];
   }
 
-  // Linear progress from purchasePrice → currentPrice, with noise
-  const effectiveStart = d < purchaseDate ? asset.purchasePrice : asset.purchasePrice;
-  const effectiveEnd   = asset.currentPrice;
-  const range          = effectiveEnd - effectiveStart;
-
-  let currentVal = effectiveStart;
-  let idx = 0;
-
+  const points = [];
+  let d = new Date(seriesStart);
   while (d <= endDate) {
-    if (d >= purchaseDate) {
-      // Linear drift + noise
-      const totalSteps = Math.ceil(totalDays / step);
-      const progress   = Math.min(idx / Math.max(totalSteps - 1, 1), 1);
-      const drift      = effectiveStart + range * progress;
-      const noise      = (rand() - 0.5) * asset.purchasePrice * 0.04;
-      currentVal       = Math.max(drift + noise, 0.01);
-      points.push({ x: new Date(d), y: parseFloat(currentVal.toFixed(2)) });
-    }
-
+    const denominator = Math.max(endDate.getTime() - purchaseDate.getTime(), 1);
+    const progress = Math.max(0, Math.min(1, (d.getTime() - purchaseDate.getTime()) / denominator));
+    const interpolated = basePrice + (endPrice - basePrice) * progress;
+    points.push({ x: new Date(d), y: parseFloat(interpolated.toFixed(2)) });
     d = new Date(d);
     d.setDate(d.getDate() + step);
-    idx++;
   }
 
-  // Always ensure last point is exactly currentPrice
-  if (points.length > 0) {
-    points[points.length - 1] = { x: new Date(endDate), y: asset.currentPrice };
-  } else {
-    points.push({ x: new Date(endDate), y: asset.currentPrice });
-  }
+  points[points.length - 1] = { x: new Date(endDate), y: endPrice };
 
   return points;
 }
@@ -154,7 +133,7 @@ async function renderPortfolioStrip() {
     try {
       assets = await apiGet(`/api/assets?portfolioId=${portfolio.id}`);
     } catch {
-      assets = fallbackData.assetsByPortfolio[portfolio.id] || [];
+      assets = [];
     }
 
     const { totalValue, totalCost, totalPL, returnPct } = computeSummary(assets);
@@ -417,7 +396,7 @@ async function selectPortfolio(id) {
   try {
     assets = await apiGet(`/api/assets?portfolioId=${id}`);
   } catch {
-    assets = fallbackData.assetsByPortfolio[id] || [];
+    assets = [];
   }
 
   pActiveAssets = assets;
@@ -449,7 +428,7 @@ async function perfInit() {
   try {
     pPortfolios = await apiGet("/api/portfolios");
   } catch {
-    pPortfolios = [...fallbackData.portfolios];
+    pPortfolios = [];
   }
 
   if (!pPortfolios.length) {

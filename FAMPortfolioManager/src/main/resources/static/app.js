@@ -1,23 +1,137 @@
-const fallbackData = {
-  portfolios: [
-    { id: 1, name: "Growth Portfolio" },
-    { id: 2, name: "Income Portfolio" }
-  ],
-  assetsByPortfolio: {
-    1: [
-      { id: 1, ticker: "AAPL", companyName: "Apple Inc.", quantity: 35, purchasePrice: 120, currentPrice: 145.32, marketValue: 5086.2, profitLoss: 886.2 },
-      { id: 2, ticker: "TSLA", companyName: "Tesla Inc.", quantity: 20, purchasePrice: 650, currentPrice: 720.15, marketValue: 14403, profitLoss: 1403 },
-      { id: 3, ticker: "AMZN", companyName: "Amazon.com Inc.", quantity: 10, purchasePrice: 3100, currentPrice: 3340.5, marketValue: 33405, profitLoss: 2405 },
-      { id: 4, ticker: "GOOGL", companyName: "Alphabet Inc.", quantity: 8, purchasePrice: 2500, currentPrice: 2750.75, marketValue: 22006, profitLoss: 2006 }
-    ],
-    2: [
-      { id: 5, ticker: "MSFT", companyName: "Microsoft Corp.", quantity: 22, purchasePrice: 350, currentPrice: 410.25, marketValue: 9025.5, profitLoss: 1325.5 },
-      { id: 6, ticker: "JNJ", companyName: "Johnson & Johnson", quantity: 40, purchasePrice: 152, currentPrice: 161.4, marketValue: 6456, profitLoss: 376 },
-      { id: 7, ticker: "VZ", companyName: "Verizon", quantity: 70, purchasePrice: 39, currentPrice: 42.3, marketValue: 2961, profitLoss: 231 },
-      { id: 8, ticker: "BND", companyName: "Vanguard Total Bond", quantity: 90, purchasePrice: 71, currentPrice: 72.8, marketValue: 6552, profitLoss: 162 }
-    ]
+const API_BASES = (() => {
+  const host = window.location.hostname;
+  const origin = window.location.origin;
+
+  if (host === "localhost" || host === "127.0.0.1") {
+    return [origin, `${window.location.protocol}//${host}:8080`, `${window.location.protocol}//${host}:8081`]
+      .filter((v, i, arr) => arr.indexOf(v) === i);
   }
-};
+
+  return [origin];
+})();
+
+async function fetchWithApiFallback(path, options = {}) {
+  let lastError;
+
+  for (let i = 0; i < API_BASES.length; i++) {
+    const base = API_BASES[i];
+    try {
+      const res = await fetch(`${base}${path}`, options);
+
+      // When frontend is served by a non-backend dev server, /api/* commonly returns 404/405.
+      // In that case, try the next known backend base (8080/8081) before failing.
+      const shouldTryNextBase = (res.status === 404 || res.status === 405) && i < API_BASES.length - 1;
+      if (shouldTryNextBase) {
+        continue;
+      }
+
+      return res;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw new Error(`Failed to fetch ${path}. Checked: ${API_BASES.join(", ")}. ${lastError?.message || ""}`.trim());
+}
+
+async function buildApiError(res, method, path) {
+  let details = "";
+  try {
+    const text = await res.text();
+    if (text) {
+      try {
+        const json = JSON.parse(text);
+        details = json.message || json.details || text;
+      } catch {
+        details = text;
+      }
+    }
+  } catch {
+    details = "";
+  }
+  return new Error(`${method} ${path} failed: ${res.status}${details ? ` - ${details}` : ""}`);
+}
+
+function toApiDateTime(dateValue) {
+  if (!dateValue) return null;
+  if (dateValue.includes("T")) return dateValue;
+  return `${dateValue}T00:00:00`;
+}
+
+function normalizeAsset(asset) {
+  const quantity = Number(asset.quantity ?? 0);
+  const purchasePrice = Number(asset.purchasePrice ?? 0);
+  const currentPrice = Number(asset.currentPrice ?? purchasePrice);
+  const marketValue = Number(asset.marketValue ?? (quantity * currentPrice));
+  const profitLoss = Number(asset.profitLoss ?? (marketValue - (quantity * purchasePrice)));
+
+  return {
+    ...asset,
+    id: Number(asset.id ?? asset.Id),
+    purchaseDate: asset.purchaseDate ?? asset.datePurchased ?? null,
+    datePurchased: asset.datePurchased ?? asset.purchaseDate ?? null,
+    quantity,
+    purchasePrice,
+    currentPrice,
+    marketValue,
+    profitLoss
+  };
+}
+
+function normalizePortfolio(portfolio) {
+  return {
+    ...portfolio,
+    id: Number(portfolio.id ?? portfolio.Id),
+    assets: Array.isArray(portfolio.assets) ? portfolio.assets.map(normalizeAsset) : []
+  };
+}
+
+async function apiGet(path) {
+  const res = await fetchWithApiFallback(path);
+  if (!res.ok) throw await buildApiError(res, "GET", path);
+  const data = await res.json();
+
+  if (path.startsWith("/api/assets")) {
+    return Array.isArray(data) ? data.map(normalizeAsset) : normalizeAsset(data);
+  }
+  if (path.startsWith("/api/portfolios")) {
+    return Array.isArray(data) ? data.map(normalizePortfolio) : normalizePortfolio(data);
+  }
+  return data;
+}
+
+async function apiPost(path, body) {
+  const res = await fetchWithApiFallback(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw await buildApiError(res, "POST", path);
+  const data = await res.json();
+  if (path.startsWith("/api/assets")) return normalizeAsset(data);
+  if (path.startsWith("/api/portfolios")) return normalizePortfolio(data);
+  return data;
+}
+
+async function apiPut(path, body) {
+  const res = await fetchWithApiFallback(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw await buildApiError(res, "PUT", path);
+  const text = await res.text();
+  if (!text) return {};
+  const data = JSON.parse(text);
+  if (path.startsWith("/api/assets")) return normalizeAsset(data);
+  if (path.startsWith("/api/portfolios")) return normalizePortfolio(data);
+  return data;
+}
+
+async function apiDelete(path) {
+  const res = await fetchWithApiFallback(path, { method: "DELETE" });
+  if (!res.ok) throw await buildApiError(res, "DELETE", path);
+}
 
 const selectEl = document.getElementById("portfolioSelect");
 const overallViewBtn = document.getElementById("overallViewBtn");
@@ -35,6 +149,7 @@ const portfolioReturnEl = document.getElementById("portfolioReturn");
 let performanceChart;
 let trendChart;
 let portfolios = [];
+let assetsByPortfolio = {};
 let currentViewMode = "overall";
 
 function formatCurrency(value) {
@@ -53,7 +168,7 @@ function renderOverallPerformanceChart() {
   const ctx = document.getElementById("performanceChart").getContext("2d");
 
   const chartData = portfolios.map(portfolio => {
-    const assets = fallbackData.assetsByPortfolio[portfolio.id] || [];
+    const assets = assetsByPortfolio[portfolio.id] || [];
     const { marketValue } = calculatePortfolioMetrics(assets);
     return marketValue;
   });
@@ -94,7 +209,7 @@ function renderOverallPerformanceChart() {
 }
 
 function renderIndividualPerformanceChart(portfolioId) {
-  const assets = fallbackData.assetsByPortfolio[portfolioId] || [];
+  const assets = assetsByPortfolio[portfolioId] || [];
   const ctx = document.getElementById("performanceChart").getContext("2d");
 
   const chartData = assets.map(asset => asset.marketValue);
@@ -135,18 +250,48 @@ function renderIndividualPerformanceChart(portfolioId) {
   });
 }
 
-function generatePerformanceData(baseValue) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const data = [];
-  let currentValue = baseValue * 0.85;
-  
-  for (let i = 0; i < months.length; i++) {
-    const change = (Math.random() - 0.45) * baseValue * 0.02;
-    currentValue = Math.max(currentValue + change, baseValue * 0.7);
-    data.push(Math.round(currentValue));
+function buildTrendFromAssets(assets) {
+  if (!assets.length) {
+    return { labels: ["Now"], data: [0] };
   }
-  
-  return { labels: months, data };
+
+  const now = new Date();
+  const parsedDates = assets
+    .map(a => new Date(a.datePurchased || a.purchaseDate || now))
+    .filter(d => !Number.isNaN(d.getTime()));
+
+  const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+  start.setDate(1);
+  start.setHours(0, 0, 0, 0);
+
+  const labels = [];
+  const data = [];
+  const cursor = new Date(start);
+
+  while (cursor <= now) {
+    const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const totalAtMonth = assets.reduce((sum, a) => {
+      const purchaseDate = new Date(a.datePurchased || a.purchaseDate || now);
+      if (Number.isNaN(purchaseDate.getTime()) || purchaseDate > monthEnd) {
+        return sum;
+      }
+
+      const purchaseValue = Number(a.quantity) * Number(a.purchasePrice);
+      const currentValue = Number(a.marketValue ?? (Number(a.quantity) * Number(a.currentPrice ?? a.purchasePrice)));
+      const denominator = Math.max(now.getTime() - purchaseDate.getTime(), 1);
+      const progress = Math.max(0, Math.min(1, (monthEnd.getTime() - purchaseDate.getTime()) / denominator));
+      const estimatedValue = purchaseValue + (currentValue - purchaseValue) * progress;
+      return sum + estimatedValue;
+    }, 0);
+
+    labels.push(cursor.toLocaleString("en-US", { month: "short", year: "2-digit" }));
+    data.push(Math.round(totalAtMonth));
+
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return { labels, data };
 }
 
 function renderPerformanceTrendChart(datasets) {
@@ -215,12 +360,12 @@ function switchViewMode(mode) {
     document.getElementById("portfolioSummary").style.display = "none";
     renderOverallPerformanceChart();
 
-    const allAssets = Object.values(fallbackData.assetsByPortfolio).flat();
+    const allAssets = Object.values(assetsByPortfolio).flat();
     const { marketValue, profitLoss, returnPercent } = calculatePortfolioMetrics(allAssets);
     totalValueEl.textContent = formatCurrency(marketValue);
     totalReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
 
-    const overallPerfData = generatePerformanceData(marketValue);
+    const overallPerfData = buildTrendFromAssets(allAssets);
     renderPerformanceTrendChart([{ label: "Total Portfolio", labels: overallPerfData.labels, data: overallPerfData.data }]);
   } else {
     overallViewBtn.classList.remove("active");
@@ -234,9 +379,9 @@ function switchViewMode(mode) {
     renderSelectedPortfolioSummary();
 
     const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
-    const assets = fallbackData.assetsByPortfolio[selectedPortfolioId] || [];
+    const assets = assetsByPortfolio[selectedPortfolioId] || [];
     const { marketValue } = calculatePortfolioMetrics(assets);
-    const perfData = generatePerformanceData(marketValue);
+    const perfData = buildTrendFromAssets(assets);
     renderPerformanceTrendChart([{ label: selectedPortfolio.name, labels: perfData.labels, data: perfData.data }]);
   }
 }
@@ -254,17 +399,36 @@ function populatePortfolioDropdown() {
 function renderSelectedPortfolioSummary() {
   const selectedPortfolioId = parseInt(selectEl.value);
   const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
-  const assets = fallbackData.assetsByPortfolio[selectedPortfolioId] || [];
+  const assets = assetsByPortfolio[selectedPortfolioId] || [];
   const { marketValue, profitLoss, returnPercent } = calculatePortfolioMetrics(assets);
 
-  portfolioNameEl.textContent = selectedPortfolio.name;
+  portfolioNameEl.textContent = selectedPortfolio?.name || "—";
   portfolioValueEl.textContent = formatCurrency(marketValue);
   portfolioProfitLossEl.textContent = formatCurrency(profitLoss);
   portfolioReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
 }
 
-function init() {
-  portfolios = fallbackData.portfolios;
+async function loadDashboardData() {
+  try {
+    portfolios = await apiGet("/api/portfolios");
+  } catch {
+    portfolios = [];
+  }
+
+  assetsByPortfolio = {};
+  for (const portfolio of portfolios) {
+    try {
+      assetsByPortfolio[portfolio.id] = await apiGet(`/api/assets?portfolioId=${portfolio.id}`);
+    } catch {
+      assetsByPortfolio[portfolio.id] = [];
+    }
+  }
+}
+
+async function init() {
+  await loadDashboardData();
+  if (!portfolios.length) return;
+
   populatePortfolioDropdown();
   switchViewMode("overall");
 
@@ -276,9 +440,9 @@ function init() {
     renderSelectedPortfolioSummary();
     
     const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
-    const assets = fallbackData.assetsByPortfolio[selectedPortfolioId] || [];
+    const assets = assetsByPortfolio[selectedPortfolioId] || [];
     const { marketValue } = calculatePortfolioMetrics(assets);
-    const perfData = generatePerformanceData(marketValue);
+    const perfData = buildTrendFromAssets(assets);
     renderPerformanceTrendChart([{ label: selectedPortfolio.name, labels: perfData.labels, data: perfData.data }]);
   });
 }
