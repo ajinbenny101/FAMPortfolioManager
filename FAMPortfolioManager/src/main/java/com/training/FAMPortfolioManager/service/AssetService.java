@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 // AssetService - business logic for asset management
 // Annotate with @Service
 // DEPENDENCY INJECTION:
@@ -45,6 +47,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AssetService {
+
+    private static final Logger LOGGER = Logger.getLogger(AssetService.class.getName());
 
     private final AssetRepository assetRepository;
     private final PortfolioRepository portfolioRepository;
@@ -129,12 +133,13 @@ public class AssetService {
     // MAPPING
     private AssetResponseDto mapToResponse(Asset asset) {
 
-        double currentPrice = priceService.getCurrentPrice(asset.getTicker());
-        double marketValue = currentPrice * asset.getQuantity();
-        double profitLoss = (currentPrice - asset.getPurchasePrice()) * asset.getQuantity();
+        double currentPrice = resolveCurrentPrice(asset);
+        double marketValue = round(currentPrice * asset.getQuantity());
+        double profitLoss = round((currentPrice - asset.getPurchasePrice()) * asset.getQuantity());
         double profitLossPercent = 0.0;
+
         if (asset.getPurchasePrice() > 0 && asset.getQuantity() > 0) {
-            profitLossPercent = (profitLoss / (asset.getPurchasePrice() * asset.getQuantity())) * 100.0;
+            profitLossPercent = round((profitLoss / (asset.getPurchasePrice() * asset.getQuantity())) * 100.0);
         }
 
         AssetResponseDto dto = new AssetResponseDto();
@@ -150,5 +155,20 @@ public class AssetService {
         dto.setProfitLossPercent(profitLossPercent);
 
         return dto;
+    }
+
+    private double resolveCurrentPrice(Asset asset) {
+        try {
+            return round(priceService.getCurrentPrice(asset.getTicker()));
+        } catch (RuntimeException ex) {
+            LOGGER.log(Level.WARNING, "Falling back to purchase price for ticker " + asset.getTicker(), ex);
+            return round(asset.getPurchasePrice());
+        }
+    }
+
+    private double round(double value) {
+        return new java.math.BigDecimal(value)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
     }
 }

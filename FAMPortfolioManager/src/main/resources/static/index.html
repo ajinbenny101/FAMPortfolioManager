@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h1>Portfolio Manager</h1>
+      <nav>
+        <button class="nav-item active">Dashboard</button>
+        <button class="nav-item" disabled>Holdings</button>
+        <button class="nav-item" disabled>Performance</button>
+        <button class="nav-item" disabled>Settings</button>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div>
+          <label for="portfolioSelect">Portfolio</label>
+          <select id="portfolioSelect"></select>
+          <div class="toolbar-row">
+            <button id="refreshButton" type="button">Refresh Data</button>
+            <span id="statusMessage">Loading data...</span>
+          </div>
+        </div>
+        <div class="stats-inline">
+          <div>
+            <span>Total Value</span>
+            <strong id="totalValue">$0.00</strong>
+          </div>
+          <div>
+            <span>Total Return</span>
+            <strong id="totalReturn">0.00%</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="chart-grid">
+        <article class="card">
+          <h2>Holdings Allocation</h2>
+          <div class="chart-canvas-wrap">
+            <canvas id="allocationChart"></canvas>
+          </div>
+        </article>
+        <article class="card">
+          <h2>Portfolio Performance</h2>
+          <div class="chart-canvas-wrap">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Holdings</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Company</th>
+                <th>Shares</th>
+                <th>Current Price</th>
+                <th>Cost Basis</th>
+                <th>Market Value</th>
+                <th>P/L</th>
+              </tr>
+            </thead>
+            <tbody id="holdingsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="summary-grid">
+        <article class="card mini"><h3>Cash</h3><p id="cashValue">$0.00</p></article>
+        <article class="card mini"><h3>Stocks</h3><p id="stocksValue">$0.00</p></article>
+        <article class="card mini"><h3>Bonds</h3><p id="bondsValue">$0.00</p></article>
+        <article class="card mini"><h3>Crypto</h3><p id="cryptoValue">$0.00</p></article>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
