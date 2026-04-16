@@ -33,6 +33,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+
+// PortfolioResponseDto - DTO for portfolio summary response from API
 @Getter
 @Setter
 @NoArgsConstructor

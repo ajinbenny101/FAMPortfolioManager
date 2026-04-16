@@ -37,11 +37,17 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+
+// This DTO class is used to receive asset data from the frontend when creating or updating an asset.
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssetRequestDto {
+
+    // Validation annotations ensure that the incoming data meets certain criteria before processing.
+    // For example, the ticker and company name must not be blank, quantity and price must be positive, 
+    // and purchase date and portfolio ID must not be null.
 
     @NotBlank(message = "Ticker required")
     private String ticker;

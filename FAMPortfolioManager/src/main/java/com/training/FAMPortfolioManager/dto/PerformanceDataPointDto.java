@@ -19,6 +19,8 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+
+// This DTO class represents a single data point for the portfolio performance chart.
 @Getter
 @Setter
 @NoArgsConstructor

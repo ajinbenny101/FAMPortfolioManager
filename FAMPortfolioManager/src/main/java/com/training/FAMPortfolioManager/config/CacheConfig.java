@@ -13,6 +13,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableCaching
 
+// This is the configuration class for caching in the application. 
+// It sets up a CaffeineCacheManager with specific settings for caching stock prices.
+
 public class CacheConfig {
     @Bean
     public CacheManager cacheManager() {

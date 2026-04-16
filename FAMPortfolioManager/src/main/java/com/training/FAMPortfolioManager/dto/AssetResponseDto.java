@@ -42,6 +42,9 @@ import lombok.Setter;
 // import lombok.NoArgsConstructor;
 // import lombok.AllArgsConstructor;
 
+
+
+// This DTO class is used to send asset data back to the frontend in API responses.
 @Getter
 @Setter
 @NoArgsConstructor

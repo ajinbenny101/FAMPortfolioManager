@@ -48,31 +48,39 @@ import java.util.List;
 //
 
 
+// This controller class defines REST endpoints for managing assets in the portfolio. 
+// It uses the AssetService to perform business logic and interacts with the database through the service layer. 
+// The endpoints allow clients to create, retrieve, update, and delete assets, as well as filter assets based on various criteria.
 @RestController
 @RequestMapping("/api/assets")
 public class AssetController {
 
         private final AssetService assetService;
 
+        // Constructor injection of AssetService
         public AssetController(AssetService assetService) {
                 this.assetService = assetService;
         }
 
+        // GET / - retrieve all assets
         @GetMapping
         public ResponseEntity<List<AssetResponseDto>> getAssetsByPortfolio(@RequestParam Long portfolioId) {
                 return ResponseEntity.ok(assetService.getAssetsByPortfolio(portfolioId));
         }
 
+        // GET /{id} - retrieve a single asset by ID
         @GetMapping("/{assetId}")
         public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long assetId) {
                 return ResponseEntity.ok(assetService.getAssetById(assetId));
         }
 
+        // POST / - create a new asset
         @PostMapping
         public ResponseEntity<AssetResponseDto> createAsset(@Valid @RequestBody AssetRequestDto request) {
                 return ResponseEntity.status(HttpStatus.CREATED).body(assetService.addAsset(request));
         }
 
+        //     PUT /{id} - update an existing asset by ID
         @PutMapping("/{assetId}")
         public ResponseEntity<AssetResponseDto> updateAsset(
                         @PathVariable Long assetId,
@@ -80,6 +88,7 @@ public class AssetController {
                 return ResponseEntity.ok(assetService.updateAsset(assetId, request));
         }
 
+        // DELETE /{id} - delete an asset by ID
         @DeleteMapping("/{assetId}")
         public ResponseEntity<Void> deleteAsset(@PathVariable Long assetId) {
                 assetService.deleteAsset(assetId);

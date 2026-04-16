@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+// This controller class defines REST endpoints for managing portfolios in the application.
+// It uses the PortfolioService to perform business logic and interacts with the database through the service layer.
+// The endpoints allow clients to create, retrieve, update, and delete portfolios.
 @RestController
 @RequestMapping("/api/portfolios")
 public class PortfolioController {
@@ -28,21 +31,24 @@ public class PortfolioController {
 		this.portfolioService = portfolioService;
 	}
 
+	// GET / - retrieve all portfolios
 	@GetMapping
 	public ResponseEntity<List<PortfolioResponseDto>> getAllPortfolios() {
 		return ResponseEntity.ok(portfolioService.getAllPortfolios());
 	}
 
+	// GET /{id} - retrieve a single portfolio by ID
 	@GetMapping("/{id}")
 	public ResponseEntity<PortfolioResponseDto> getPortfolioById(@PathVariable Long id) {
 		return ResponseEntity.ok(portfolioService.getPortfolioById(id));
 	}
-
+	// POST / - create a new portfolio
 	@PostMapping
 	public ResponseEntity<PortfolioResponseDto> createPortfolio(@Valid @RequestBody PortfolioRequestDTO request) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(portfolioService.addPortfolio(request));
 	}
 
+	// PUT /{id} - update an existing portfolio by ID
 	@PutMapping("/{id}")
 	public ResponseEntity<PortfolioResponseDto> updatePortfolio(
 			@PathVariable Long id,
@@ -50,6 +56,7 @@ public class PortfolioController {
 		return ResponseEntity.ok(portfolioService.updatePortfolio(id, request));
 	}
 
+	// DELETE /{id} - delete a portfolio by ID
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deletePortfolio(@PathVariable Long id) {
 		portfolioService.deletePortfolio(id);

@@ -15,9 +15,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 // import org.springframework.context.annotation.Configuration;
 // import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 // import org.springframework.web.servlet.config.annotation.CorsRegistry;
+
+// This configuration class sets up CORS to allow cross-origin requests from the frontend application
+// and also defines a RestTemplate bean for making HTTP requests to external APIs.
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    // Configure CORS to allow requests from the frontend application
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
@@ -26,7 +31,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
-
+    // RestTemplate bean for making HTTP requests to external APIs (e.g., price service)
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
