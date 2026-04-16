@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Holdings — Portfolio Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="holdings.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h1>Portfolio Manager</h1>
+      <nav>
+        <button class="nav-item" onclick="window.location.href='index.html'">Dashboard</button>
+        <button class="nav-item active">Holdings</button>
+        <button class="nav-item" disabled>Performance</button>
+        <button class="nav-item" disabled>Settings</button>
+      </nav>
+    </aside>
+
+    <main class="content holdings-content">
+
+      <!-- Portfolio Strip -->
+      <section class="portfolio-strip" id="portfolioStrip">
+        <!-- Populated by JS -->
+      </section>
+
+      <!-- Top toolbar: search + filters -->
+      <section class="holdings-toolbar card">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search by ticker or company name…" />
+        </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="sortSelect">Sort by</label>
+            <select id="sortSelect">
+              <option value="ticker">Ticker A–Z</option>
+              <option value="ticker-desc">Ticker Z–A</option>
+              <option value="value-desc">Market Value ↓</option>
+              <option value="value-asc">Market Value ↑</option>
+              <option value="pl-desc">P/L ↓</option>
+              <option value="pl-asc">P/L ↑</option>
+              <option value="date-desc">Date Purchased ↓</option>
+              <option value="date-asc">Date Purchased ↑</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="plFilter">P/L Filter</label>
+            <select id="plFilter">
+              <option value="all">All</option>
+              <option value="positive">Gains only</option>
+              <option value="negative">Losses only</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="minValueInput">Min Value ($)</label>
+            <input type="number" id="minValueInput" placeholder="0" min="0" style="width:110px;" />
+          </div>
+          <button id="clearFiltersBtn" class="btn-ghost">Clear filters</button>
+          <span id="holdingsStatusMessage" class="status-msg"></span>
+        </div>
+      </section>
+
+      <!-- Holdings table + sidebar panel side-by-side -->
+      <div class="holdings-body-grid">
+
+        <!-- Holdings table -->
+        <section class="card holdings-table-card">
+          <div class="table-header-row">
+            <h2>Holdings <span class="holdings-count" id="holdingsCount"></span></h2>
+            <label class="select-all-label">
+              <input type="checkbox" id="selectAllCheckbox" />
+              Select all
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table id="holdingsTable">
+              <thead>
+                <tr>
+                  <th style="width:36px;"></th>
+                  <th>Symbol</th>
+                  <th>Company</th>
+                  <th>Shares</th>
+                  <th>Current Price</th>
+                  <th>Cost Basis</th>
+                  <th>Market Value</th>
+                  <th>Date Purchased</th>
+                  <th>P/L</th>
+                </tr>
+              </thead>
+              <tbody id="holdingsBody"></tbody>
+            </table>
+            <p id="emptyState" class="empty-state" style="display:none;">No holdings match your filters.</p>
+          </div>
+        </section>
+
+        <!-- Action sidebar panel -->
+        <aside class="holdings-action-panel card">
+          <h3 class="panel-section-title">Stock Actions</h3>
+          <div class="panel-btn-group">
+            <button class="panel-btn" id="btnAddStock">
+              <span class="panel-btn-icon panel-btn-icon--add">+</span>
+              Add Stock
+            </button>
+            <button class="panel-btn" id="btnUpdateStock">
+              <span class="panel-btn-icon panel-btn-icon--edit">✎</span>
+              Update Stock
+            </button>
+            <button class="panel-btn panel-btn--danger" id="btnRemoveStock">
+              <span class="panel-btn-icon panel-btn-icon--remove">−</span>
+              Remove Stock
+            </button>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <h3 class="panel-section-title">Portfolio Actions</h3>
+          <div class="panel-btn-group">
+            <button class="panel-btn" id="btnAddPortfolio">
+              <span class="panel-btn-icon panel-btn-icon--add">+</span>
+              Add Portfolio
+            </button>
+            <button class="panel-btn" id="btnUpdatePortfolio">
+              <span class="panel-btn-icon panel-btn-icon--edit">✎</span>
+              Update Portfolio
+            </button>
+            <button class="panel-btn panel-btn--danger" id="btnRemovePortfolio">
+              <span class="panel-btn-icon panel-btn-icon--remove">−</span>
+              Remove Portfolio
+            </button>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="selection-summary" id="selectionSummary">
+            <p class="selection-hint">Select rows to enable stock actions.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Add Stock Modal -->
+  <div class="modal-overlay" id="modalAddStock" role="dialog" aria-modal="true" aria-labelledby="modalAddStockTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalAddStockTitle">Add Stock</h2>
+        <button class="modal-close" data-close="modalAddStock">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="addTicker">Ticker Symbol *</label>
+            <input type="text" id="addTicker" placeholder="e.g. AAPL" maxlength="10" />
+          </div>
+          <div class="form-group">
+            <label for="addPortfolioSelect">Portfolio *</label>
+            <select id="addPortfolioSelect"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="addCompanyName">Company Name *</label>
+          <input type="text" id="addCompanyName" placeholder="e.g. Apple Inc." />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="addQuantity">Shares *</label>
+            <input type="number" id="addQuantity" placeholder="0" min="0" step="0.0001" />
+          </div>
+          <div class="form-group">
+            <label for="addPurchasePrice">Purchase Price ($) *</label>
+            <input type="number" id="addPurchasePrice" placeholder="0.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="addCurrentPrice">Current Price ($)</label>
+            <input type="number" id="addCurrentPrice" placeholder="0.00" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label for="addDatePurchased">Date Purchased *</label>
+            <input type="date" id="addDatePurchased" />
+          </div>
+        </div>
+        <p class="form-error" id="addStockError"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modalAddStock">Cancel</button>
+        <button class="btn-primary" id="btnConfirmAddStock">Add Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Stock Modal -->
+  <div class="modal-overlay" id="modalUpdateStock" role="dialog" aria-modal="true" aria-labelledby="modalUpdateStockTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalUpdateStockTitle">Update Stock</h2>
+        <button class="modal-close" data-close="modalUpdateStock">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="updateStockId" />
+        <div class="form-row">
+          <div class="form-group">
+            <label for="updateTicker">Ticker Symbol</label>
+            <input type="text" id="updateTicker" maxlength="10" />
+          </div>
+          <div class="form-group">
+            <label for="updateCompanyName">Company Name</label>
+            <input type="text" id="updateCompanyName" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="updateQuantity">Shares</label>
+            <input type="number" id="updateQuantity" min="0" step="0.0001" />
+          </div>
+          <div class="form-group">
+            <label for="updatePurchasePrice">Purchase Price ($)</label>
+            <input type="number" id="updatePurchasePrice" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="updateCurrentPrice">Current Price ($)</label>
+            <input type="number" id="updateCurrentPrice" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label for="updateDatePurchased">Date Purchased</label>
+            <input type="date" id="updateDatePurchased" />
+          </div>
+        </div>
+        <p class="form-error" id="updateStockError"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modalUpdateStock">Cancel</button>
+        <button class="btn-primary" id="btnConfirmUpdateStock">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remove Stock Confirmation Modal -->
+  <div class="modal-overlay" id="modalRemoveStock" role="dialog" aria-modal="true" aria-labelledby="modalRemoveStockTitle">
+    <div class="modal modal--sm">
+      <div class="modal-header">
+        <h2 id="modalRemoveStockTitle">Remove Stock</h2>
+        <button class="modal-close" data-close="modalRemoveStock">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="removeStockConfirmText">Are you sure you want to remove the selected holding(s)? This cannot be undone.</p>
+        <ul id="removeStockList" class="remove-list"></ul>
+        <p class="form-error" id="removeStockError"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modalRemoveStock">Cancel</button>
+        <button class="btn-danger" id="btnConfirmRemoveStock">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Portfolio Modal -->
+  <div class="modal-overlay" id="modalAddPortfolio" role="dialog" aria-modal="true" aria-labelledby="modalAddPortfolioTitle">
+    <div class="modal modal--sm">
+      <div class="modal-header">
+        <h2 id="modalAddPortfolioTitle">Add Portfolio</h2>
+        <button class="modal-close" data-close="modalAddPortfolio">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="addPortfolioName">Portfolio Name *</label>
+          <input type="text" id="addPortfolioName" placeholder="e.g. Retirement Fund" />
+        </div>
+        <p class="form-error" id="addPortfolioError"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modalAddPortfolio">Cancel</button>
+        <button class="btn-primary" id="btnConfirmAddPortfolio">Create Portfolio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Portfolio Modal -->
+  <div class="modal-overlay" id="modalUpdatePortfolio" role="dialog" aria-modal="true" aria-labelledby="modalUpdatePortfolioTitle">
+    <div class="modal modal--sm">
+      <div class="modal-header">
+        <h2 id="modalUpdatePortfolioTitle">Update Portfolio</h2>
+        <button class="modal-close" data-close="modalUpdatePortfolio">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="updatePortfolioSelect">Select Portfolio *</label>
+          <select id="updatePortfolioSelect"></select>
+        </div>
+        <div class="form-group">
+          <label for="updatePortfolioName">New Name *</label>
+          <input type="text" id="updatePortfolioName" placeholder="Enter new name" />
+        </div>
+        <p class="form-error" id="updatePortfolioError"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modalUpdatePortfolio">Cancel</button>
+        <button class="btn-primary" id="btnConfirmUpdatePortfolio">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remove Portfolio Confirmation Modal -->
+  <div class="modal-overlay" id="modalRemovePortfolio" role="dialog" aria-modal="true" aria-labelledby="modalRemovePortfolioTitle">
+    <div class="modal modal--sm">
+      <div class="modal-header">
+        <h2 id="modalRemovePortfolioTitle">Remove Portfolio</h2>
+        <button class="modal-close" data-close="modalRemovePortfolio">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="removePortfolioSelect">Select Portfolio to Remove *</label>
+          <select id="removePortfolioSelect"></select>
+        </div>
+        <p class="form-warning">⚠ Removing a portfolio will also remove all holdings within it.</p>
+        <p class="form-error" id="removePortfolioError"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modalRemovePortfolio">Cancel</button>
+        <button class="btn-danger" id="btnConfirmRemovePortfolio">Remove Portfolio</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="holdings.js"></script>
+</body>
+</html>
