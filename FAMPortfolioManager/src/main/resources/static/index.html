@@ -12,10 +12,9 @@
     <aside class="sidebar">
       <h1>Portfolio Manager</h1>
       <nav>
-        <button class="nav-item active">Dashboard</button>
-        <button class="nav-item" disabled>Holdings</button>
+        <button class="nav-item active" onclick="goToPage('index.html')">Dashboard</button>
+        <button class="nav-item" onclick="goToPage('holdings.html')">Holdings</button>
         <button class="nav-item" disabled>Performance</button>
-        <button class="nav-item" disabled>Settings</button>
       </nav>
     </aside>
 
@@ -25,8 +24,8 @@
           <label for="portfolioSelect">Portfolio</label>
           <select id="portfolioSelect"></select>
           <div class="toolbar-row">
-            <button id="refreshButton" type="button">Refresh Data</button>
-            <span id="statusMessage">Loading data...</span>
+            <button id="overallViewBtn" type="button" class="view-toggle active">Overall Performance</button>
+            <button id="individualViewBtn" type="button" class="view-toggle">Individual Portfolio</button>
           </div>
         </div>
         <div class="stats-inline">
@@ -43,48 +42,48 @@
 
       <section class="chart-grid">
         <article class="card">
-          <h2>Holdings Allocation</h2>
-          <div class="chart-canvas-wrap">
-            <canvas id="allocationChart"></canvas>
-          </div>
-        </article>
-        <article class="card">
-          <h2>Portfolio Performance</h2>
+          <h2 id="chartTitle">Overall Performance</h2>
           <div class="chart-canvas-wrap">
             <canvas id="performanceChart"></canvas>
           </div>
         </article>
+        <article class="card">
+          <h2>Performance Trend</h2>
+          <div class="chart-canvas-wrap">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </article>
       </section>
 
-      <section class="card">
-        <h2>Holdings</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Company</th>
-                <th>Shares</th>
-                <th>Current Price</th>
-                <th>Cost Basis</th>
-                <th>Market Value</th>
-                <th>P/L</th>
-              </tr>
-            </thead>
-            <tbody id="holdingsBody"></tbody>
-          </table>
+      <section class="card" id="portfolioSummary" style="display:none;">
+        <h2>Individual Portfolio</h2>
+        <div class="portfolio-summary">
+          <div class="summary-item">
+            <span>Portfolio Name</span>
+            <strong id="portfolioName">-</strong>
+          </div>
+          <div class="summary-item">
+            <span>Total Portfolio Value</span>
+            <strong id="portfolioValue">$0.00</strong>
+          </div>
+          <div class="summary-item">
+            <span>Total Profit / Loss</span>
+            <strong id="portfolioProfitLoss">$0.00</strong>
+          </div>
+          <div class="summary-item">
+            <span>Total Return</span>
+            <strong id="portfolioReturn">0.00%</strong>
+          </div>
         </div>
-      </section>
-
-      <section class="summary-grid">
-        <article class="card mini"><h3>Cash</h3><p id="cashValue">$0.00</p></article>
-        <article class="card mini"><h3>Stocks</h3><p id="stocksValue">$0.00</p></article>
-        <article class="card mini"><h3>Bonds</h3><p id="bondsValue">$0.00</p></article>
-        <article class="card mini"><h3>Crypto</h3><p id="cryptoValue">$0.00</p></article>
       </section>
     </main>
   </div>
 
+  <script>
+    function goToPage(page) {
+      window.location.href = page;
+    }
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

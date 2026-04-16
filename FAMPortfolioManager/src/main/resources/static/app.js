@@ -1,5 +1,3 @@
-const API_BASE = window.location.origin;
-
 const fallbackData = {
   portfolios: [
     { id: 1, name: "Growth Portfolio" },
@@ -22,200 +20,72 @@ const fallbackData = {
 };
 
 const selectEl = document.getElementById("portfolioSelect");
-const holdingsBody = document.getElementById("holdingsBody");
-const refreshButton = document.getElementById("refreshButton");
-const statusMessageEl = document.getElementById("statusMessage");
+const overallViewBtn = document.getElementById("overallViewBtn");
+const individualViewBtn = document.getElementById("individualViewBtn");
+const chartTitleEl = document.getElementById("chartTitle");
 
 const totalValueEl = document.getElementById("totalValue");
 const totalReturnEl = document.getElementById("totalReturn");
-const cashValueEl = document.getElementById("cashValue");
-const stocksValueEl = document.getElementById("stocksValue");
-const bondsValueEl = document.getElementById("bondsValue");
-const cryptoValueEl = document.getElementById("cryptoValue");
 
-let allocationChart;
+const portfolioNameEl = document.getElementById("portfolioName");
+const portfolioValueEl = document.getElementById("portfolioValue");
+const portfolioProfitLossEl = document.getElementById("portfolioProfitLoss");
+const portfolioReturnEl = document.getElementById("portfolioReturn");
+
 let performanceChart;
+let trendChart;
 let portfolios = [];
+let currentViewMode = "overall";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 }
 
-async function apiGet(path) {
-  const response = await fetch(`${API_BASE}${path}`);
-  if (!response.ok) {
-    let details = "";
-
-    try {
-      const errorBody = await response.json();
-      details = errorBody.details || errorBody.message || "";
-    } catch {
-      details = "";
-    }
-
-    const suffix = details ? ` - ${details}` : "";
-    throw new Error(`Request failed: ${response.status}${suffix}`);
-  }
-  return response.json();
+function calculatePortfolioMetrics(assets) {
+  const marketValue = assets.reduce((sum, asset) => sum + asset.marketValue, 0);
+  const costBasis = assets.reduce((sum, asset) => sum + asset.quantity * asset.purchasePrice, 0);
+  const profitLoss = marketValue - costBasis;
+  const returnPercent = costBasis > 0 ? (profitLoss / costBasis) * 100 : 0;
+  return { marketValue, profitLoss, returnPercent };
 }
 
-function setStatus(message, isError = false) {
-  statusMessageEl.textContent = message;
-  statusMessageEl.style.color = isError ? "#c62828" : "";
-}
+function renderOverallPerformanceChart() {
+  const ctx = document.getElementById("performanceChart").getContext("2d");
 
-function populatePortfolioDropdown(items) {
-  selectEl.innerHTML = "";
-  items.forEach((portfolio) => {
-    const option = document.createElement("option");
-    option.value = portfolio.id;
-    option.textContent = portfolio.name;
-    selectEl.appendChild(option);
+  const chartData = portfolios.map(portfolio => {
+    const assets = fallbackData.assetsByPortfolio[portfolio.id] || [];
+    const { marketValue } = calculatePortfolioMetrics(assets);
+    return marketValue;
   });
-}
-
-function calculateHoldingsValues(assets) {
-  return assets.reduce(
-    (acc, item) => {
-      const marketValue = Number(item.marketValue ?? item.quantity * item.currentPrice);
-      const cost = Number(item.quantity * item.purchasePrice);
-      acc.totalMarketValue += marketValue;
-      acc.totalCost += cost;
-      acc.totalProfitLoss += Number(item.profitLoss ?? marketValue - cost);
-      return acc;
-    },
-    { totalMarketValue: 0, totalCost: 0, totalProfitLoss: 0 }
-  );
-}
-
-function renderHoldingsTable(assets) {
-  holdingsBody.innerHTML = "";
-
-  assets.forEach((item) => {
-    const tr = document.createElement("tr");
-    const marketValue = Number(item.marketValue ?? item.quantity * item.currentPrice);
-    const pl = Number(item.profitLoss ?? marketValue - item.quantity * item.purchasePrice);
-
-    tr.innerHTML = `
-      <td>${item.ticker}</td>
-      <td>${item.companyName}</td>
-      <td>${item.quantity}</td>
-      <td>${formatCurrency(item.currentPrice)}</td>
-      <td>${formatCurrency(item.purchasePrice)}</td>
-      <td>${formatCurrency(marketValue)}</td>
-      <td>${pl >= 0 ? "+" : ""}${formatCurrency(pl)}</td>
-    `;
-
-    holdingsBody.appendChild(tr);
-  });
-}
-
-function buildAllocationFromAssets(assets, totalValue) {
-  if (!assets.length || totalValue <= 0) {
-    return { labels: ["No Data"], values: [100] };
-  }
-
-  const sorted = [...assets].sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0));
-  const top = sorted.slice(0, 5);
-  const rest = sorted.slice(5);
-
-  const labels = top.map((a) => a.ticker);
-  const values = top.map((a) => Number(((a.marketValue / totalValue) * 100).toFixed(2)));
-
-  if (rest.length) {
-    const otherValue = rest.reduce((sum, a) => sum + a.marketValue, 0);
-    labels.push("Other");
-    values.push(Number(((otherValue / totalValue) * 100).toFixed(2)));
-  }
-
-  return { labels, values };
-}
-
-function buildPerformanceSeries(totalCost, totalValue) {
-  const labels = ["M-11", "M-10", "M-9", "M-8", "M-7", "M-6", "M-5", "M-4", "M-3", "M-2", "M-1", "Now"];
-  const start = totalCost > 0 ? totalCost : totalValue * 0.9;
-  const points = labels.map((_, idx) => {
-    const t = idx / (labels.length - 1);
-    const value = start + (totalValue - start) * t;
-    return Number(value.toFixed(2));
-  });
-  return { labels, points };
-}
-
-function renderSummary(assets) {
-  const { totalMarketValue, totalCost, totalProfitLoss } = calculateHoldingsValues(assets);
-  const totalValue = totalMarketValue;
-  const totalReturnPct = totalCost > 0 ? (totalProfitLoss / totalCost) * 100 : 0;
-
-  totalValueEl.textContent = formatCurrency(totalValue);
-  totalReturnEl.textContent = `${totalReturnPct.toFixed(2)}%`;
-
-  cashValueEl.textContent = formatCurrency(0);
-  stocksValueEl.textContent = formatCurrency(totalMarketValue);
-  bondsValueEl.textContent = formatCurrency(0);
-  cryptoValueEl.textContent = formatCurrency(0);
-
-  return { totalCost, totalValue };
-}
-
-function renderAllocationChart(assets, totalValue) {
-  const { labels, values } = buildAllocationFromAssets(assets, totalValue);
-
-  if (allocationChart) {
-    allocationChart.destroy();
-  }
-
-  allocationChart = new Chart(document.getElementById("allocationChart"), {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [
-        {
-          data: values,
-          backgroundColor: ["#2b78e4", "#0a8f4e", "#e84762", "#f0b429", "#6f42c1", "#20c997"],
-          borderWidth: 0
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "right" } },
-      cutout: "55%"
-    }
-  });
-}
-
-function renderPerformanceChart(totalCost, totalValue) {
-  const series = buildPerformanceSeries(totalCost, totalValue);
 
   if (performanceChart) {
     performanceChart.destroy();
   }
 
-  performanceChart = new Chart(document.getElementById("performanceChart"), {
-    type: "line",
+  performanceChart = new Chart(ctx, {
+    type: "pie",
     data: {
-      labels: series.labels,
-      datasets: [
-        {
-          label: "Portfolio Value",
-          data: series.points,
-          borderColor: "#2b78e4",
-          pointRadius: 0,
-          fill: true,
-          backgroundColor: "rgba(43, 120, 228, 0.2)",
-          tension: 0.2
-        }
-      ]
+      labels: portfolios.map(p => p.name),
+      datasets: [{
+        data: chartData,
+        backgroundColor: ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0"],
+        borderWidth: 2,
+        borderColor: "#fff"
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: {
-          ticks: {
-            callback: (value) => `$${(value / 1000).toFixed(0)}k`
+      plugins: {
+        legend: {
+          position: "right"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              return `${context.label}: ${formatCurrency(value)}`;
+            }
           }
         }
       }
@@ -223,92 +93,194 @@ function renderPerformanceChart(totalCost, totalValue) {
   });
 }
 
-async function loadAssetsByPortfolioId(portfolioId) {
-  try {
-    const assets = await apiGet(`/api/assets?portfolioId=${portfolioId}`);
-    setStatus(`Loaded ${assets.length} asset${assets.length === 1 ? "" : "s"}.`);
-    return assets;
-  } catch (error) {
-    const selectedPortfolio = portfolios.find((portfolio) => String(portfolio.id) === String(portfolioId));
-    if (selectedPortfolio?.assets?.length) {
-      setStatus("Asset endpoint failed, using portfolio payload instead.", true);
-      return selectedPortfolio.assets;
+function renderIndividualPerformanceChart(portfolioId) {
+  const assets = fallbackData.assetsByPortfolio[portfolioId] || [];
+  const ctx = document.getElementById("performanceChart").getContext("2d");
+
+  const chartData = assets.map(asset => asset.marketValue);
+  const labels = assets.map(asset => asset.ticker);
+
+  if (performanceChart) {
+    performanceChart.destroy();
+  }
+
+  performanceChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: labels,
+      datasets: [{
+        data: chartData,
+        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
+        borderWidth: 2,
+        borderColor: "#fff"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              return `${context.label}: ${formatCurrency(value)}`;
+            }
+          }
+        }
+      }
     }
-
-    if (fallbackData.assetsByPortfolio[portfolioId]) {
-      setStatus(`Backend asset fetch failed: ${error.message}. Showing demo data.`, true);
-      return fallbackData.assetsByPortfolio[portfolioId] || [];
-    }
-
-    setStatus(`Backend asset fetch failed: ${error.message}.`, true);
-    return fallbackData.assetsByPortfolio[portfolioId] || [];
-  }
-}
-
-async function updateDashboard(portfolioId) {
-  const assets = await loadAssetsByPortfolioId(portfolioId);
-  renderHoldingsTable(assets);
-  const summary = renderSummary(assets);
-  renderAllocationChart(assets, summary.totalValue);
-  renderPerformanceChart(summary.totalCost, summary.totalValue);
-}
-
-async function refreshPortfolios() {
-  try {
-    portfolios = await apiGet("/api/portfolios");
-    populatePortfolioDropdown(portfolios);
-    return true;
-  } catch (error) {
-    if (!portfolios.length) {
-      portfolios = fallbackData.portfolios;
-      populatePortfolioDropdown(portfolios);
-    }
-    setStatus(`Portfolio fetch failed: ${error.message}.`, true);
-    return false;
-  }
-}
-
-async function refreshDashboard() {
-  const selectedId = selectEl.value || portfolios[0]?.id;
-  if (!selectedId) {
-    return;
-  }
-
-  await refreshPortfolios();
-
-  const stillExists = portfolios.some((portfolio) => String(portfolio.id) === String(selectedId));
-  const nextId = stillExists ? selectedId : portfolios[0]?.id;
-
-  if (!nextId) {
-    return;
-  }
-
-  selectEl.value = String(nextId);
-  await updateDashboard(nextId);
-}
-
-async function init() {
-  await refreshPortfolios();
-
-  if (!portfolios.length) {
-    setStatus("No portfolios found yet.");
-    return;
-  }
-
-  await refreshDashboard();
-
-  selectEl.addEventListener("change", async (event) => {
-    await updateDashboard(event.target.value);
-  });
-
-  refreshButton.addEventListener("click", async () => {
-    setStatus("Refreshing data...");
-    await refreshDashboard();
-  });
-
-  window.addEventListener("focus", async () => {
-    await refreshDashboard();
   });
 }
 
-init();
+function generatePerformanceData(baseValue) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const data = [];
+  let currentValue = baseValue * 0.85;
+  
+  for (let i = 0; i < months.length; i++) {
+    const change = (Math.random() - 0.45) * baseValue * 0.02;
+    currentValue = Math.max(currentValue + change, baseValue * 0.7);
+    data.push(Math.round(currentValue));
+  }
+  
+  return { labels: months, data };
+}
+
+function renderPerformanceTrendChart(datasets) {
+  const ctx = document.getElementById("trendChart").getContext("2d");
+
+  if (trendChart) {
+    trendChart.destroy();
+  }
+
+  const colors = ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0"];
+  
+  const chartDatasets = datasets.map((dataset, index) => ({
+    label: dataset.label,
+    data: dataset.data,
+    borderColor: colors[index % colors.length],
+    backgroundColor: colors[index % colors.length].replace(")", ", 0.1)").replace("rgb", "rgba"),
+    borderWidth: 2,
+    fill: false,
+    tension: 0.4,
+    pointRadius: 3,
+    pointBackgroundColor: colors[index % colors.length]
+  }));
+
+  trendChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: datasets[0].labels,
+      datasets: chartDatasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "top"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: function(value) {
+              return formatCurrency(value);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function switchViewMode(mode) {
+  currentViewMode = mode;
+
+  if (mode === "overall") {
+    overallViewBtn.classList.add("active");
+    individualViewBtn.classList.remove("active");
+    chartTitleEl.textContent = "Overall Performance";
+    selectEl.style.display = "none";
+    document.getElementById("portfolioSummary").style.display = "none";
+    renderOverallPerformanceChart();
+
+    const allAssets = Object.values(fallbackData.assetsByPortfolio).flat();
+    const { marketValue, profitLoss, returnPercent } = calculatePortfolioMetrics(allAssets);
+    totalValueEl.textContent = formatCurrency(marketValue);
+    totalReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
+
+    const overallPerfData = generatePerformanceData(marketValue);
+    renderPerformanceTrendChart([{ label: "Total Portfolio", labels: overallPerfData.labels, data: overallPerfData.data }]);
+  } else {
+    overallViewBtn.classList.remove("active");
+    individualViewBtn.classList.add("active");
+    chartTitleEl.textContent = "Individual Performance";
+    selectEl.style.display = "inline-block";
+    document.getElementById("portfolioSummary").style.display = "grid";
+    
+    const selectedPortfolioId = parseInt(selectEl.value);
+    renderIndividualPerformanceChart(selectedPortfolioId);
+    renderSelectedPortfolioSummary();
+
+    const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
+    const assets = fallbackData.assetsByPortfolio[selectedPortfolioId] || [];
+    const { marketValue } = calculatePortfolioMetrics(assets);
+    const perfData = generatePerformanceData(marketValue);
+    renderPerformanceTrendChart([{ label: selectedPortfolio.name, labels: perfData.labels, data: perfData.data }]);
+  }
+}
+
+function populatePortfolioDropdown() {
+  portfolios.forEach(portfolio => {
+    const option = document.createElement("option");
+    option.value = portfolio.id;
+    option.textContent = portfolio.name;
+    selectEl.appendChild(option);
+  });
+  selectEl.value = portfolios[0].id;
+}
+
+function renderSelectedPortfolioSummary() {
+  const selectedPortfolioId = parseInt(selectEl.value);
+  const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
+  const assets = fallbackData.assetsByPortfolio[selectedPortfolioId] || [];
+  const { marketValue, profitLoss, returnPercent } = calculatePortfolioMetrics(assets);
+
+  portfolioNameEl.textContent = selectedPortfolio.name;
+  portfolioValueEl.textContent = formatCurrency(marketValue);
+  portfolioProfitLossEl.textContent = formatCurrency(profitLoss);
+  portfolioReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
+}
+
+function init() {
+  portfolios = fallbackData.portfolios;
+  populatePortfolioDropdown();
+  switchViewMode("overall");
+
+  overallViewBtn.addEventListener("click", () => switchViewMode("overall"));
+  individualViewBtn.addEventListener("click", () => switchViewMode("individual"));
+  selectEl.addEventListener("change", () => {
+    const selectedPortfolioId = parseInt(selectEl.value);
+    renderIndividualPerformanceChart(selectedPortfolioId);
+    renderSelectedPortfolioSummary();
+    
+    const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
+    const assets = fallbackData.assetsByPortfolio[selectedPortfolioId] || [];
+    const { marketValue } = calculatePortfolioMetrics(assets);
+    const perfData = generatePerformanceData(marketValue);
+    renderPerformanceTrendChart([{ label: selectedPortfolio.name, labels: perfData.labels, data: perfData.data }]);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
