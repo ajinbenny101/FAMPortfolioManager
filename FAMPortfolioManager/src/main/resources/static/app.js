@@ -1,3 +1,26 @@
+/* ============================================================
+  app.js — Shared frontend API layer + dashboard page logic
+
+  Backend integration covered here:
+  - GET    /api/portfolios
+  - POST   /api/portfolios
+  - PUT    /api/portfolios/{id}
+  - DELETE /api/portfolios/{id}
+  - GET    /api/assets?portfolioId={id}
+  - POST   /api/assets
+  - PUT    /api/assets/{id}
+  - DELETE /api/assets/{id}
+
+  Why this file matters:
+  1) It centralizes API calls and response normalization so all pages use
+    the same object shape (id, marketValue, profitLoss, etc.).
+  2) It powers dashboard-specific charts/KPIs for overall vs. individual
+    portfolio analytics.
+  ============================================================ */
+
+// Resolve one or more backend bases.
+// In local development, static files may be served from a different port,
+// so we try same-origin first, then common backend ports.
 const API_BASES = (() => {
   const host = window.location.hostname;
   const origin = window.location.origin;
@@ -52,12 +75,16 @@ async function buildApiError(res, method, path) {
   return new Error(`${method} ${path} failed: ${res.status}${details ? ` - ${details}` : ""}`);
 }
 
+// Backend DTOs expect ISO-8601 datetime values for purchase date fields.
+// HTML date inputs provide YYYY-MM-DD, so append a midnight time component.
 function toApiDateTime(dateValue) {
   if (!dateValue) return null;
   if (dateValue.includes("T")) return dateValue;
   return `${dateValue}T00:00:00`;
 }
 
+// Normalize asset payload shape from backend variants into one stable model
+// consumed by all frontend pages.
 function normalizeAsset(asset) {
   const quantity = Number(asset.quantity ?? 0);
   const purchasePrice = Number(asset.purchasePrice ?? 0);
@@ -78,6 +105,7 @@ function normalizeAsset(asset) {
   };
 }
 
+// Normalize portfolio payloads and recursively normalize embedded assets.
 function normalizePortfolio(portfolio) {
   return {
     ...portfolio,
@@ -86,6 +114,8 @@ function normalizePortfolio(portfolio) {
   };
 }
 
+// Shared GET wrapper used by all pages.
+// Adds normalization so page scripts can stay focused on rendering.
 async function apiGet(path) {
   const res = await fetchWithApiFallback(path);
   if (!res.ok) throw await buildApiError(res, "GET", path);
@@ -100,6 +130,7 @@ async function apiGet(path) {
   return data;
 }
 
+// Shared POST wrapper for create operations.
 async function apiPost(path, body) {
   const res = await fetchWithApiFallback(path, {
     method: "POST",
@@ -113,6 +144,7 @@ async function apiPost(path, body) {
   return data;
 }
 
+// Shared PUT wrapper for update operations.
 async function apiPut(path, body) {
   const res = await fetchWithApiFallback(path, {
     method: "PUT",
@@ -128,6 +160,7 @@ async function apiPut(path, body) {
   return data;
 }
 
+// Shared DELETE wrapper for remove operations.
 async function apiDelete(path) {
   const res = await fetchWithApiFallback(path, { method: "DELETE" });
   if (!res.ok) throw await buildApiError(res, "DELETE", path);
@@ -146,6 +179,7 @@ const portfolioValueEl = document.getElementById("portfolioValue");
 const portfolioProfitLossEl = document.getElementById("portfolioProfitLoss");
 const portfolioReturnEl = document.getElementById("portfolioReturn");
 
+// Dashboard state: in-memory cache of portfolios and per-portfolio holdings.
 let performanceChart;
 let trendChart;
 let portfolios = [];
@@ -156,6 +190,8 @@ function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 }
 
+// Compute aggregate valuation metrics from an asset array.
+// Used by KPI cards and chart summaries.
 function calculatePortfolioMetrics(assets) {
   const marketValue = assets.reduce((sum, asset) => sum + asset.marketValue, 0);
   const costBasis = assets.reduce((sum, asset) => sum + asset.quantity * asset.purchasePrice, 0);
@@ -164,6 +200,7 @@ function calculatePortfolioMetrics(assets) {
   return { marketValue, profitLoss, returnPercent };
 }
 
+// Overall mode chart: each slice represents one portfolio's total market value.
 function renderOverallPerformanceChart() {
   const ctx = document.getElementById("performanceChart").getContext("2d");
 
@@ -208,6 +245,7 @@ function renderOverallPerformanceChart() {
   });
 }
 
+// Individual mode chart: each slice represents one stock in the selected portfolio.
 function renderIndividualPerformanceChart(portfolioId) {
   const assets = assetsByPortfolio[portfolioId] || [];
   const ctx = document.getElementById("performanceChart").getContext("2d");
@@ -250,6 +288,8 @@ function renderIndividualPerformanceChart(portfolioId) {
   });
 }
 
+// Build a lightweight month-by-month trend approximation from available
+// asset data when full historical prices are not persisted in the backend.
 function buildTrendFromAssets(assets) {
   if (!assets.length) {
     return { labels: ["Now"], data: [0] };
@@ -294,6 +334,7 @@ function buildTrendFromAssets(assets) {
   return { labels, data };
 }
 
+// Render trend line chart (overall portfolio or single selected portfolio).
 function renderPerformanceTrendChart(datasets) {
   const ctx = document.getElementById("trendChart").getContext("2d");
 
@@ -349,6 +390,8 @@ function renderPerformanceTrendChart(datasets) {
   });
 }
 
+// Toggle between dashboard perspectives and refresh all dependent UI blocks:
+// charts, totals, and selected portfolio summary.
 function switchViewMode(mode) {
   currentViewMode = mode;
 
@@ -386,6 +429,7 @@ function switchViewMode(mode) {
   }
 }
 
+// Populate portfolio selector used by individual dashboard mode.
 function populatePortfolioDropdown() {
   portfolios.forEach(portfolio => {
     const option = document.createElement("option");
@@ -396,6 +440,7 @@ function populatePortfolioDropdown() {
   selectEl.value = portfolios[0].id;
 }
 
+// Render per-portfolio KPI summary for selected option in dropdown.
 function renderSelectedPortfolioSummary() {
   const selectedPortfolioId = parseInt(selectEl.value);
   const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
@@ -408,6 +453,9 @@ function renderSelectedPortfolioSummary() {
   portfolioReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
 }
 
+// Initial data load for dashboard screen:
+// 1) portfolios
+// 2) holdings for each portfolio
 async function loadDashboardData() {
   try {
     portfolios = await apiGet("/api/portfolios");
@@ -425,6 +473,8 @@ async function loadDashboardData() {
   }
 }
 
+// Dashboard bootstrap.
+// Runs after DOM is ready so all chart containers and controls are available.
 async function init() {
   await loadDashboardData();
   if (!portfolios.length) return;

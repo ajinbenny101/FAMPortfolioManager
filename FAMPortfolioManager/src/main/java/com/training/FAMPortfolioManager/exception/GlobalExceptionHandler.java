@@ -19,9 +19,14 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+
+// This class provides centralized exception handling for the application. 
+// It catches specific exceptions like AssetNotFoundException and general exceptions, 
+// returning appropriate HTTP status codes and error messages in JSON format to the client.
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Handle AssetNotFoundException and return 404 status with error message
     @ExceptionHandler(AssetNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleAssetNotFound(AssetNotFoundException ex) {
         Map<String, Object> errorResponse = new HashMap<>();
@@ -32,6 +37,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    // Handle any other exceptions and return 500 status with generic error message
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex) {
         Map<String, Object> errorResponse = new HashMap<>();

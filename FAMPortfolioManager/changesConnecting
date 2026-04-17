@@ -6,10 +6,12 @@ Updated dashboard flow in src/main/resources/static/app.js to load:
 GET /api/portfolios
 GET /api/assets?portfolioId={id}
 with fallback to local demo data when backend is unavailable.
+
 Fixed holdings CRUD payload mapping in src/main/resources/static/holdings.js:
 uses backend DTO field purchaseDate (not datePurchased)
 includes required portfolioId on update
 sends full portfolio payload (name, description) for portfolio add/update
+
 Added integration mapping doc:
 FRONTEND_BACKEND_LINKS.md
 Backend features now linked

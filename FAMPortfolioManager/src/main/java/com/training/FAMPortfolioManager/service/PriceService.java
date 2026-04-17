@@ -34,10 +34,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 // import org.springframework.http.ResponseEntity;
 // import org.json.JSONObject; // or Jackson ObjectMapper
 
-    @Service
+// This service class is responsible for fetching current and historical price data for assets. 
+// It uses RestTemplate to call the Yahoo Finance API and retrieves the necessary price information.
+@Service
 public class PriceService {
 
-   
+   // @Value annotations to inject API key and base URL from application.properties
     @Value("${alphavantage.api.key}")
     private String apiKey;
 
@@ -49,6 +51,7 @@ public class PriceService {
     public PriceService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
+    // Fetches the current price for a given stock ticker symbol using the Alpha Vantage API.
 
     @SuppressWarnings("unchecked")
     @Cacheable(value = "stockPrices", key = "#symbol")
@@ -57,12 +60,14 @@ public class PriceService {
             throw new IllegalStateException("Alpha Vantage API key is not configured. Set alphavantage.api.key in application.properties.");
         }
 
+        // This constructs the URL for the API call, including query parameters for the function, symbol, and API key.
         String url = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("function", "GLOBAL_QUOTE")
                 .queryParam("symbol", symbol)
                 .queryParam("apikey", apiKey)
                 .toUriString();
 
+        // This makes the HTTP GET request to the Alpha Vantage API and expects a JSON response that can be mapped to a Map.
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
         if (response == null || response.isEmpty()) {
             throw new IllegalStateException("No response from Alpha Vantage for symbol: " + symbol);
