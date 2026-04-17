@@ -45,9 +45,14 @@ import java.util.logging.Logger;
 // import java.time.LocalDate;
 // import java.util.stream.Collectors;
 
+
+// This service class contains the business logic for managing assets in the portfolio. 
+// It interacts with the AssetRepository to perform CRUD operations and uses the PriceService to fetch current
+
 @Service
 public class AssetService {
 
+    // Logger for logging warnings and errors, especially when price retrieval fails
     private static final Logger LOGGER = Logger.getLogger(AssetService.class.getName());
 
     private final AssetRepository assetRepository;

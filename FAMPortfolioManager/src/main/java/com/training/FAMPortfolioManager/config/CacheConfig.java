@@ -1,12 +1,15 @@
 package com.training.FAMPortfolioManager.config;
 
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,12 +20,38 @@ import org.springframework.context.annotation.Configuration;
 // It sets up a CaffeineCacheManager with specific settings for caching stock prices.
 
 public class CacheConfig {
+
+    @Value("${pricing.cache.fresh-seconds:900}")
+    private long freshCacheSeconds;
+
+    @Value("${pricing.cache.stale-hours:24}")
+    private long staleCacheHours;
+
+    @Value("${pricing.cache.failure-minutes:15}")
+    private long failureCacheMinutes;
+
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager manager = new CaffeineCacheManager("stockPrices");
-        manager.setCaffeine(Caffeine.newBuilder()
-                .expireAfterWrite(60, TimeUnit.SECONDS)
-                .maximumSize(200));
+        CaffeineCache freshPrices = new CaffeineCache("stockPrices",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(freshCacheSeconds, TimeUnit.SECONDS)
+                        .maximumSize(500)
+                        .build());
+
+        CaffeineCache stalePrices = new CaffeineCache("stockPricesFallback",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(staleCacheHours, TimeUnit.HOURS)
+                        .maximumSize(1000)
+                        .build());
+
+        CaffeineCache failures = new CaffeineCache("stockPriceFailures",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(failureCacheMinutes, TimeUnit.MINUTES)
+                        .maximumSize(1000)
+                        .build());
+
+        SimpleCacheManager manager = new SimpleCacheManager();
+        manager.setCaches(List.of(freshPrices, stalePrices, failures));
         return manager;
     }
 } 

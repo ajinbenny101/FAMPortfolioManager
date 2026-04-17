@@ -1,9 +1,18 @@
 /* ============================================================
    performance.js — Performance page logic
-   Depends on: app.js (for fallbackData, formatCurrency)
+  Depends on: app.js (for apiGet, formatCurrency)
+
+  Backend integration in this page:
+  - GET /api/portfolios
+  - GET /api/assets?portfolioId={id}
+
+  Primary goal:
+  Translate backend portfolio/asset snapshots into decision-friendly KPI
+  cards and interactive performance trend charts.
    ============================================================ */
 
 // ── Constants ─────────────────────────────────────────────────────────────
+// Stable palette reused for chart datasets and custom legend chips.
 const CHART_COLORS = [
   "#2b78e4", "#0a8f4e", "#e67e22", "#9b59b6",
   "#e74c3c", "#1abc9c", "#f39c12", "#2980b9"
@@ -13,6 +22,7 @@ const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ── State ─────────────────────────────────────────────────────────────────
+// Runtime state for selected portfolio, loaded holdings and chart instance.
 let pPortfolios = [];
 let pActivePortfolioId = null;
 let pActiveAssets = [];
@@ -43,6 +53,7 @@ function fmtPct(v) {
   return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
 }
 
+// Apply positive/negative semantic coloring to KPI values.
 function setColor(el, value) {
   el.classList.remove("positive", "negative");
   el.classList.add(value >= 0 ? "positive" : "negative");
@@ -52,65 +63,45 @@ function now() {
   return new Date();
 }
 
-// ── Generate simulated history ─────────────────────────────────────────
+// ── Generate deterministic history ─────────────────────────────────────
 /**
- * Build a plausible price series for an asset.
- * Starts from purchasePrice on datePurchased, ends near currentPrice today.
- * Uses a seeded random walk so it stays stable within a session.
+ * Build an estimated deterministic series for an asset.
+ * Starts at purchase price on purchase date and linearly interpolates to current price today.
  */
 function generateHistory(asset, rangeDays) {
   const endDate   = now();
   const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - rangeDays);
 
-  // How many data points?
-  const totalDays = Math.min(rangeDays, 730);
-  const step      = Math.max(1, Math.floor(totalDays / 80)); // ~80 points max
+  const totalDays = Math.max(1, Math.min(rangeDays, 1825));
+  const step = Math.max(1, Math.floor(totalDays / 80));
 
   const purchaseDate = asset.datePurchased
     ? new Date(asset.datePurchased)
     : new Date(endDate.getFullYear() - 2, 0, 1);
 
-  const points = [];
-  let d = new Date(startDate);
+  const seriesStart = purchaseDate > startDate ? purchaseDate : startDate;
+  const basePrice = Number(asset.purchasePrice ?? 0);
+  const endPrice = Number(asset.currentPrice ?? basePrice);
 
-  // Simple seeded pseudo-random based on ticker
-  let seed = asset.ticker.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  function rand() {
-    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-    return (seed >>> 0) / 4294967296;
+  // If purchase is in the future relative to the selected range, no data.
+  if (seriesStart > endDate) {
+    return [];
   }
 
-  // Linear progress from purchasePrice → currentPrice, with noise
-  const effectiveStart = d < purchaseDate ? asset.purchasePrice : asset.purchasePrice;
-  const effectiveEnd   = asset.currentPrice;
-  const range          = effectiveEnd - effectiveStart;
-
-  let currentVal = effectiveStart;
-  let idx = 0;
-
+  // Build deterministic interpolation points from purchase -> current price.
+  const points = [];
+  let d = new Date(seriesStart);
   while (d <= endDate) {
-    if (d >= purchaseDate) {
-      // Linear drift + noise
-      const totalSteps = Math.ceil(totalDays / step);
-      const progress   = Math.min(idx / Math.max(totalSteps - 1, 1), 1);
-      const drift      = effectiveStart + range * progress;
-      const noise      = (rand() - 0.5) * asset.purchasePrice * 0.04;
-      currentVal       = Math.max(drift + noise, 0.01);
-      points.push({ x: new Date(d), y: parseFloat(currentVal.toFixed(2)) });
-    }
-
+    const denominator = Math.max(endDate.getTime() - purchaseDate.getTime(), 1);
+    const progress = Math.max(0, Math.min(1, (d.getTime() - purchaseDate.getTime()) / denominator));
+    const interpolated = basePrice + (endPrice - basePrice) * progress;
+    points.push({ x: new Date(d), y: parseFloat(interpolated.toFixed(2)) });
     d = new Date(d);
     d.setDate(d.getDate() + step);
-    idx++;
   }
 
-  // Always ensure last point is exactly currentPrice
-  if (points.length > 0) {
-    points[points.length - 1] = { x: new Date(endDate), y: asset.currentPrice };
-  } else {
-    points.push({ x: new Date(endDate), y: asset.currentPrice });
-  }
+  points[points.length - 1] = { x: new Date(endDate), y: endPrice };
 
   return points;
 }
@@ -135,6 +126,7 @@ function computeSummary(assets) {
   return { totalValue, totalCost, totalPL, returnPct };
 }
 
+// Identify top and bottom performers by % return within the selected portfolio.
 function getBestWorst(assets) {
   if (!assets.length) return { best: null, worst: null };
   const sorted = [...assets].sort((a, b) => {
@@ -150,17 +142,18 @@ async function renderPortfolioStrip() {
   stripEl.innerHTML = "";
 
   for (const portfolio of pPortfolios) {
+    // Pull live holdings so each strip card reflects current backend valuation.
     let assets = [];
     try {
       assets = await apiGet(`/api/assets?portfolioId=${portfolio.id}`);
     } catch {
-      assets = fallbackData.assetsByPortfolio[portfolio.id] || [];
+      assets = [];
     }
 
     const { totalValue, totalCost, totalPL, returnPct } = computeSummary(assets);
     const isActive = String(portfolio.id) === String(pActivePortfolioId);
 
-    // Build hover stock list HTML
+    // Build hover stock list HTML for quick composition insight.
     const stockRows = assets.map(a => {
       const pl    = a.marketValue - a.quantity * a.purchasePrice;
       const plPct = a.quantity * a.purchasePrice > 0
@@ -176,7 +169,7 @@ async function renderPortfolioStrip() {
         </div>`;
     }).join("");
 
-    // Clamp bar width
+    // Clamp return bar width so extreme values do not overflow card layout.
     const barWidth = Math.min(Math.abs(returnPct) * 2.5, 100);
 
     const card = document.createElement("div");
@@ -229,6 +222,7 @@ function renderStatsPanel(portfolio, assets) {
   const { totalValue, totalCost, totalPL, returnPct } = computeSummary(assets);
   const { best, worst } = getBestWorst(assets);
 
+  // KPI cards are all derived from backend-provided asset snapshots.
   selectedNameEl.textContent = portfolio.name;
   stockCountEl.textContent   = `${assets.length} stock${assets.length !== 1 ? "s" : ""}`;
 
@@ -262,7 +256,7 @@ function renderStatsPanel(portfolio, assets) {
 function populateStockDropdown(assets) {
   stockSelectEl.innerHTML = "";
 
-  // "All stocks" option
+  // "All stocks" option allows multi-series portfolio comparison.
   const allOpt = document.createElement("option");
   allOpt.value = "all";
   allOpt.textContent = "All Stocks";
@@ -294,6 +288,7 @@ function renderLegend(datasets) {
   });
 }
 
+// Legend chips toggle visibility without rebuilding dataset arrays.
 function toggleDataset(index, chip) {
   if (!perfChart) return;
   const meta = perfChart.getDatasetMeta(index);
@@ -314,6 +309,7 @@ function renderChart(assets, range) {
   const ctx = document.getElementById("perfStockChart").getContext("2d");
   const days = rangeToDays(range);
 
+  // Optional focus mode: one stock, otherwise compare all.
   const selectedVal = stockSelectEl.value;
   const targetAssets = selectedVal === "all"
     ? assets
@@ -338,6 +334,7 @@ function renderChart(assets, range) {
     };
   });
 
+  // Recreate chart when range/selection changes to keep config straightforward.
   if (perfChart) {
     perfChart.destroy();
     hiddenDatasets.clear();
@@ -413,11 +410,12 @@ async function selectPortfolio(id) {
   pActivePortfolioId = id;
   updateStripActive();
 
+  // Fetch all holdings for selected portfolio from backend.
   let assets = [];
   try {
     assets = await apiGet(`/api/assets?portfolioId=${id}`);
   } catch {
-    assets = fallbackData.assetsByPortfolio[id] || [];
+    assets = [];
   }
 
   pActiveAssets = assets;
@@ -445,11 +443,11 @@ async function perfInit() {
     hour: "2-digit", minute: "2-digit"
   });
 
-  // Load portfolios
+  // Initial portfolio fetch seeds strip + default selection.
   try {
     pPortfolios = await apiGet("/api/portfolios");
   } catch {
-    pPortfolios = [...fallbackData.portfolios];
+    pPortfolios = [];
   }
 
   if (!pPortfolios.length) {

@@ -1,0 +1,55 @@
+Added shared API integration + response normalization in src/main/resources/static/app.js:
+apiGet(), apiPost(), apiPut(), apiDelete()
+normalizeAsset() / normalizePortfolio()
+toApiDateTime() for DTO-compatible purchaseDate
+Updated dashboard flow in src/main/resources/static/app.js to load:
+GET /api/portfolios
+GET /api/assets?portfolioId={id}
+with fallback to local demo data when backend is unavailable.
+
+Fixed holdings CRUD payload mapping in src/main/resources/static/holdings.js:
+uses backend DTO field purchaseDate (not datePurchased)
+includes required portfolioId on update
+sends full portfolio payload (name, description) for portfolio add/update
+
+Added integration mapping doc:
+FRONTEND_BACKEND_LINKS.md
+Backend features now linked
+Dashboard charts/KPIs ↔ PortfolioController + AssetController
+Holdings list + stock CRUD ↔ AssetController
+Portfolio CRUD in holdings panel ↔ PortfolioController
+Performance KPIs/charts source data ↔ AssetController + PriceService
+Notes
+Static checks report no JS errors in updated files.
+Your app startup failure shown earlier is currently environmental (port 8080 in use), not frontend wiring logic.
+If you want, I can do the next pass to remove remaining frontend fallback paths and make it backend-only mode.
+
+GPT-5.3-Codex • 0.9x
+
+What was changed
+Removed all demo/fallback dataset usage from:
+
+src/main/resources/static/app.js
+src/main/resources/static/holdings.js
+src/main/resources/static/performance.js
+Kept and used shared backend API helpers in src/main/resources/static/app.js:
+
+apiGet(), apiPost(), apiPut(), apiDelete()
+DTO/response normalization (id, purchaseDate, datePurchased, metrics fields)
+Holdings CRUD now strictly requires backend success:
+
+POST /api/assets
+PUT /api/assets/{id}
+DELETE /api/assets/{id}
+POST /api/portfolios
+PUT /api/portfolios/{id}
+DELETE /api/portfolios/{id}
+Removed duplicate local HTTP helpers from holdings page so all pages use the same API layer.
+
+Result
+Frontend features are now directly wired to backend endpoints only.
+If backend is unavailable, the UI now shows failure state instead of silently switching to demo data.
+
+If you want, next step is to run a full end-to-end click test and I can patch any live API contract mismatch immediately.
+
+GPT-5.3-Codex • 0.9x
