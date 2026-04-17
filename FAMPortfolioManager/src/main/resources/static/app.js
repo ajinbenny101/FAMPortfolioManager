@@ -441,7 +441,7 @@ async function switchViewMode(mode) {
   if (mode === "overall") {
     overallViewBtn.classList.add("active");
     individualViewBtn.classList.remove("active");
-    chartTitleEl.textContent = "Overall Performance";
+    chartTitleEl.textContent = "Portfolio Distribution";
     selectEl.style.display = "none";
     document.getElementById("portfolioSummary").style.display = "none";
     renderOverallPerformanceChart();
@@ -452,7 +452,7 @@ async function switchViewMode(mode) {
     totalReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
 
     const overallPerfData = await getOverallTrendData(allAssets);
-    renderPerformanceTrendChart([{ label: "Total Portfolio", labels: overallPerfData.labels, data: overallPerfData.data }]);
+    renderPerformanceTrendChart([{ label: "Summary Of Assets", labels: overallPerfData.labels, data: overallPerfData.data }]);
   } else {
     overallViewBtn.classList.remove("active");
     individualViewBtn.classList.add("active");

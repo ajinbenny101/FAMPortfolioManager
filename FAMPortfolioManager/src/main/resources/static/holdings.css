@@ -34,8 +34,8 @@
 }
 
 .portfolio-card.active {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(43, 120, 228, 0.15);
+  border-color: rgb(9, 157, 216);
+  box-shadow: 0 0 0 5px rgba(9, 157, 216, 0.15);
 }
 
 .portfolio-card__name {

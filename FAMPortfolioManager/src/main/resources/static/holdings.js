@@ -261,6 +261,12 @@ async function switchPortfolio(portfolioId) {
   updateStripActiveState();
   setHoldingsStatus("Loading holdings…");
 
+  // Update the table header to show the active portfolio name
+  const activePortfolio = hPortfolios.find(p => String(p.id) === String(portfolioId));
+  if (activePortfolio) {
+    document.getElementById("portfolioName").textContent = activePortfolio.name;
+  }
+
   try {
     // Core holdings fetch endpoint for the active portfolio.
     const assets = await apiGet(`/api/assets?portfolioId=${portfolioId}`);

@@ -426,6 +426,13 @@ async function selectPortfolio(id) {
   const portfolio = pPortfolios.find(p => String(p.id) === String(id));
   renderStatsPanel(portfolio, assets);
   populateStockDropdown(assets);
+  
+  // Update chart title to show active portfolio name
+  const chartTitle = document.querySelector(".perf-chart-title");
+  if (chartTitle && portfolio) {
+    chartTitle.textContent = `Stock Performance Over Time for ${portfolio.name}`;
+  }
+  
   await renderChart(assets, rangeSelectEl.value);
 }
 
