@@ -310,7 +310,6 @@ document.getElementById("btnAddStock").addEventListener("click", () => {
   document.getElementById("addCompanyName").value = "";
   document.getElementById("addQuantity").value = "";
   document.getElementById("addPurchasePrice").value = "";
-  document.getElementById("addCurrentPrice").value = "";
   document.getElementById("addDatePurchased").value = new Date().toISOString().slice(0, 10);
   populatePortfolioDropdowns();
   // Pre-select active portfolio
