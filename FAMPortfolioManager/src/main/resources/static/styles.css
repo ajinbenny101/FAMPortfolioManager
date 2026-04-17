@@ -227,6 +227,198 @@ td:last-child {
   font-weight: 700;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   ALERT BANNER
+   Added by alerts.js / index.html update.
+   The banner sits above .topbar inside .content and slides in
+   via a CSS transition once the JS adds .alert-banner--visible.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Base state: hidden (zero height, invisible) ─────────────── */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  border: 1.5px solid transparent;
+  font-size: 0.88rem;
+  line-height: 1.4;
+
+  /* Slide-in transition */
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  transition:
+    max-height 0.35s ease,
+    opacity    0.3s  ease,
+    padding    0.3s  ease,
+    margin     0.3s  ease;
+}
+
+/* ── Visible state ───────────────────────────────────────────── */
+.alert-banner--visible {
+  max-height: 80px;
+  opacity: 1;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+/* ── Fully hidden / collapsed (JS adds this to dismiss) ──────── */
+.alert-banner--hidden {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  pointer-events: none;
+}
+
+/* ── Colour themes ───────────────────────────────────────────── */
+.alert-banner--danger {
+  background: #fff5f5;
+  border-color: #f5c4c4;
+  color: #8b0000;
+}
+
+.alert-banner--warning {
+  background: #fffbf0;
+  border-color: #fdd87a;
+  color: #7a4800;
+}
+
+.alert-banner--success {
+  background: #f0faf5;
+  border-color: #a3d9b8;
+  color: #0a5c32;
+}
+
+.alert-banner--info {
+  background: #f0f5ff;
+  border-color: #b3cef5;
+  color: #1a3d6b;
+}
+
+/* ── Layout sections ─────────────────────────────────────────── */
+.alert-banner__left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-banner__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.alert-banner__text-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.alert-banner__label {
+  font-weight: 700;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.alert-banner__message {
+  font-size: 0.84rem;
+  opacity: 0.9;
+  /* Truncate gracefully on very narrow screens */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Navigation dots ─────────────────────────────────────────── */
+.alert-banner__dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.alert-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: currentColor;
+  opacity: 0.25;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.alert-dot--active,
+.alert-dot:hover {
+  opacity: 0.85;
+}
+
+/* ── Right-side action buttons ───────────────────────────────── */
+.alert-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.alert-banner__nav,
+.alert-banner__dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.alert-banner__nav:hover,
+.alert-banner__dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.alert-banner__counter {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* ── Responsive tweaks ───────────────────────────────────────── */
+@media (max-width: 700px) {
+  .alert-banner--visible {
+    max-height: 120px; /* allow wrapping on small screens */
+  }
+
+  .alert-banner__message {
+    white-space: normal;
+  }
+
+  .alert-banner__dots {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   END ALERT BANNER
+═══════════════════════════════════════════════════════════════ */
+
 @media (max-width: 1020px) {
   .app-shell {
     grid-template-columns: 1fr;

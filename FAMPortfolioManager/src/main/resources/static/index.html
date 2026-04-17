@@ -19,6 +19,36 @@
     </aside>
 
     <main class="content">
+
+      <!-- ═══════════════════════════════════════════════════════════
+           AI ALERT BANNER
+           Sits above the topbar. Populated entirely by alerts.js.
+           Hidden by default; shown once alerts are evaluated.
+      ════════════════════════════════════════════════════════════ -->
+      <div id="alertBanner" class="alert-banner alert-banner--hidden" role="alert" aria-live="polite">
+
+        <!-- Left: icon + message cycling area -->
+        <div class="alert-banner__left">
+          <span class="alert-banner__icon" id="alertIcon">⚡</span>
+          <div class="alert-banner__text-wrap">
+            <span class="alert-banner__label" id="alertLabel">Portfolio Alert</span>
+            <span class="alert-banner__message" id="alertMessage">Analysing your portfolio…</span>
+          </div>
+        </div>
+
+        <!-- Centre: navigation dots when there are multiple alerts -->
+        <div class="alert-banner__dots" id="alertDots"></div>
+
+        <!-- Right: prev / next arrows + dismiss -->
+        <div class="alert-banner__actions">
+          <button class="alert-banner__nav" id="alertPrev" aria-label="Previous alert">&#8249;</button>
+          <span class="alert-banner__counter" id="alertCounter"></span>
+          <button class="alert-banner__nav" id="alertNext" aria-label="Next alert">&#8250;</button>
+          <button class="alert-banner__dismiss" id="alertDismiss" aria-label="Dismiss alerts">&#10005;</button>
+        </div>
+      </div>
+      <!-- END AI ALERT BANNER -->
+
       <header class="topbar">
         <div>
           <label for="portfolioSelect">Portfolio</label>
@@ -85,5 +115,6 @@
     }
   </script>
   <script src="app.js"></script>
+  <script src="alerts.js"></script>
 </body>
 </html>
