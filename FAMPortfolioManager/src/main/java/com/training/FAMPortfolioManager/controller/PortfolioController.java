@@ -2,6 +2,7 @@ package com.training.FAMPortfolioManager.controller;
 
 import com.training.FAMPortfolioManager.dto.PortfolioRequestDTO;
 import com.training.FAMPortfolioManager.dto.PortfolioResponseDto;
+import com.training.FAMPortfolioManager.dto.PerformanceDataPointDto;
 import com.training.FAMPortfolioManager.service.PortfolioService;
 
 import jakarta.validation.Valid;
@@ -9,6 +10,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +43,22 @@ public class PortfolioController {
 	@GetMapping("/{id}")
 	public ResponseEntity<PortfolioResponseDto> getPortfolioById(@PathVariable Long id) {
 		return ResponseEntity.ok(portfolioService.getPortfolioById(id));
+	}
+
+	// GET /performance/overall - monthly total portfolio value across all portfolios
+	@GetMapping("/performance/overall")
+	public ResponseEntity<List<PerformanceDataPointDto>> getOverallPerformance() {
+		return ResponseEntity.ok()
+				.cacheControl(CacheControl.noStore())
+				.body(portfolioService.getOverallPerformance());
+	}
+
+	// GET /{id}/performance - monthly value for one portfolio
+	@GetMapping("/{id}/performance")
+	public ResponseEntity<List<PerformanceDataPointDto>> getPortfolioPerformance(@PathVariable Long id) {
+		return ResponseEntity.ok()
+				.cacheControl(CacheControl.noStore())
+				.body(portfolioService.getPortfolioPerformance(id));
 	}
 	// POST / - create a new portfolio
 	@PostMapping

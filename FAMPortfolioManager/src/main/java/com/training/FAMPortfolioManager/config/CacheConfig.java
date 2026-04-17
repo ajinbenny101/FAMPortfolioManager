@@ -30,6 +30,9 @@ public class CacheConfig {
     @Value("${pricing.cache.failure-minutes:15}")
     private long failureCacheMinutes;
 
+        @Value("${pricing.cache.history-failure-minutes:30}")
+        private long historyFailureCacheMinutes;
+
     @Bean
     public CacheManager cacheManager() {
         CaffeineCache freshPrices = new CaffeineCache("stockPrices",
@@ -50,8 +53,14 @@ public class CacheConfig {
                         .maximumSize(1000)
                         .build());
 
+        CaffeineCache historyFailures = new CaffeineCache("stockHistoryFailures",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(historyFailureCacheMinutes, TimeUnit.MINUTES)
+                        .maximumSize(1000)
+                        .build());
+
         SimpleCacheManager manager = new SimpleCacheManager();
-        manager.setCaches(List.of(freshPrices, stalePrices, failures));
+        manager.setCaches(List.of(freshPrices, stalePrices, failures, historyFailures));
         return manager;
     }
 } 

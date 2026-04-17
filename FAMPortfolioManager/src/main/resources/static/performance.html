@@ -107,8 +107,8 @@
 
         <!-- Chart footnote -->
         <p class="perf-chart-note">
-          ℹ Performance data is estimated from purchase price to current price over the selected time range.
-          Connect your backend to supply real historical OHLC data via <code>/api/assets/{id}/history</code>.
+          ℹ Performance data is sourced from cached monthly backend series and refreshed with no-store requests.
+          Per-stock trend data is served via <code>/api/assets/{id}/performance</code>.
         </p>
       </section>
 
