@@ -6,11 +6,15 @@ import com.training.FAMPortfolioManager.repository.AssetRepository;
 import com.training.FAMPortfolioManager.repository.PortfolioRepository;
 import com.training.FAMPortfolioManager.dto.AssetRequestDto;
 import com.training.FAMPortfolioManager.dto.AssetResponseDto;
+import com.training.FAMPortfolioManager.dto.PerformanceDataPointDto;
 
 
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -103,6 +107,34 @@ public class AssetService {
         return mapToResponse(asset);
     }
 
+    // READ PERFORMANCE SERIES (MONTHLY)
+    public List<PerformanceDataPointDto> getAssetPerformance(Long assetId) {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new RuntimeException("Asset not found"));
+
+        if (asset.getDatePurchased() == null) {
+            return List.of();
+        }
+
+        LocalDate purchaseDate = asset.getDatePurchased().toLocalDate();
+        YearMonth startMonth = YearMonth.from(purchaseDate);
+        YearMonth endMonth = YearMonth.now();
+
+        priceService.ensureMonthlySeriesStored(asset.getTicker(), purchaseDate, LocalDate.now());
+
+        List<PerformanceDataPointDto> series = new ArrayList<>();
+        YearMonth cursor = startMonth;
+        while (!cursor.isAfter(endMonth)) {
+            LocalDate monthDate = cursor.atDay(1);
+            double unitPrice = resolveMonthlyPrice(asset, monthDate, cursor.equals(endMonth));
+            double totalValue = round(unitPrice * asset.getQuantity());
+            series.add(new PerformanceDataPointDto(monthDate, totalValue));
+            cursor = cursor.plusMonths(1);
+        }
+
+        return series;
+    }
+
     // UPDATE
     public AssetResponseDto updateAsset(Long assetId, AssetRequestDto request) {
 
@@ -169,6 +201,23 @@ public class AssetService {
             LOGGER.log(Level.WARNING, "Falling back to purchase price for ticker " + asset.getTicker(), ex);
             return round(asset.getPurchasePrice());
         }
+    }
+
+    private double resolveMonthlyPrice(Asset asset, LocalDate monthDate, boolean isCurrentMonth) {
+        try {
+            Double stored = priceService.getMonthlyClosePrice(asset.getTicker(), monthDate);
+            if (stored != null && stored > 0) {
+                return round(stored);
+            }
+        } catch (RuntimeException ignored) {
+            // Continue to fallback.
+        }
+
+        if (isCurrentMonth) {
+            return resolveCurrentPrice(asset);
+        }
+
+        return round(asset.getPurchasePrice());
     }
 
     private double round(double value) {

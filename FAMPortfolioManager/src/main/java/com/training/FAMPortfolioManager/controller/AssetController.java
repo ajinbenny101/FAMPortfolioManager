@@ -2,10 +2,12 @@ package com.training.FAMPortfolioManager.controller;
 
 import com.training.FAMPortfolioManager.dto.AssetRequestDto;
 import com.training.FAMPortfolioManager.dto.AssetResponseDto;
+import com.training.FAMPortfolioManager.dto.PerformanceDataPointDto;
 import com.training.FAMPortfolioManager.service.AssetService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -72,6 +74,14 @@ public class AssetController {
         @GetMapping("/{assetId}")
         public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long assetId) {
                 return ResponseEntity.ok(assetService.getAssetById(assetId));
+        }
+
+        // GET /{assetId}/performance - monthly value series for a single asset
+        @GetMapping("/{assetId}/performance")
+        public ResponseEntity<List<PerformanceDataPointDto>> getAssetPerformance(@PathVariable Long assetId) {
+                return ResponseEntity.ok()
+                                .cacheControl(CacheControl.noStore())
+                                .body(assetService.getAssetPerformance(assetId));
         }
 
         // POST / - create a new asset

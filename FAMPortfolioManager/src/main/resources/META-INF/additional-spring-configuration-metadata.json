@@ -6,9 +6,14 @@
       "description": "API key used to authenticate requests to the Twelve Data market data service."
     },
     {
-      "name": "twelvedata.base.url",
+      "name": "twelvedata.price.url",
       "type": "java.lang.String",
-      "description": "Base URL for the Twelve Data current price endpoint."
+      "description": "URL for the Twelve Data current price endpoint."
+    },
+    {
+      "name": "twelvedata.time-series.url",
+      "type": "java.lang.String",
+      "description": "URL for the Twelve Data historical time-series endpoint."
     },
     {
       "name": "pricing.cache.fresh-seconds",
@@ -24,6 +29,11 @@
       "name": "pricing.cache.failure-minutes",
       "type": "java.lang.Integer",
       "description": "Number of minutes provider-side quote failures are cached to avoid repeated calls for blocked or unsupported symbols."
+    },
+    {
+      "name": "pricing.cache.history-failure-minutes",
+      "type": "java.lang.Integer",
+      "description": "Number of minutes historical provider failures are cached to avoid repeated time-series calls for unsupported symbols."
     }
   ]
 }

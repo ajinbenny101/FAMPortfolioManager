@@ -116,10 +116,14 @@ function normalizePortfolio(portfolio) {
 
 // Shared GET wrapper used by all pages.
 // Adds normalization so page scripts can stay focused on rendering.
-async function apiGet(path) {
-  const res = await fetchWithApiFallback(path);
+async function apiGet(path, options = {}) {
+  const res = await fetchWithApiFallback(path, options);
   if (!res.ok) throw await buildApiError(res, "GET", path);
   const data = await res.json();
+
+  if (path.includes("/performance")) {
+    return data;
+  }
 
   if (path.startsWith("/api/assets")) {
     return Array.isArray(data) ? data.map(normalizeAsset) : normalizeAsset(data);
@@ -188,6 +192,12 @@ let currentViewMode = "overall";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+}
+
+function formatMonthLabel(isoDate) {
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  return d.toLocaleString("en-US", { month: "short", year: "2-digit" });
 }
 
 // Compute aggregate valuation metrics from an asset array.
@@ -334,6 +344,39 @@ function buildTrendFromAssets(assets) {
   return { labels, data };
 }
 
+function mapPerformanceSeries(points) {
+  if (!Array.isArray(points) || !points.length) {
+    return { labels: ["Now"], data: [0] };
+  }
+
+  return {
+    labels: points.map(p => formatMonthLabel(p.date)),
+    data: points.map(p => Number(p.totalValue ?? 0))
+  };
+}
+
+async function getOverallTrendData(allAssets) {
+  try {
+    const points = await apiGet(`/api/portfolios/performance/overall?ts=${Date.now()}`, {
+      cache: "no-store"
+    });
+    return mapPerformanceSeries(points);
+  } catch {
+    return buildTrendFromAssets(allAssets);
+  }
+}
+
+async function getPortfolioTrendData(portfolioId, assets) {
+  try {
+    const points = await apiGet(`/api/portfolios/${portfolioId}/performance?ts=${Date.now()}`, {
+      cache: "no-store"
+    });
+    return mapPerformanceSeries(points);
+  } catch {
+    return buildTrendFromAssets(assets);
+  }
+}
+
 // Render trend line chart (overall portfolio or single selected portfolio).
 function renderPerformanceTrendChart(datasets) {
   const ctx = document.getElementById("trendChart").getContext("2d");
@@ -392,7 +435,7 @@ function renderPerformanceTrendChart(datasets) {
 
 // Toggle between dashboard perspectives and refresh all dependent UI blocks:
 // charts, totals, and selected portfolio summary.
-function switchViewMode(mode) {
+async function switchViewMode(mode) {
   currentViewMode = mode;
 
   if (mode === "overall") {
@@ -408,7 +451,7 @@ function switchViewMode(mode) {
     totalValueEl.textContent = formatCurrency(marketValue);
     totalReturnEl.textContent = `${returnPercent.toFixed(2)}%`;
 
-    const overallPerfData = buildTrendFromAssets(allAssets);
+    const overallPerfData = await getOverallTrendData(allAssets);
     renderPerformanceTrendChart([{ label: "Total Portfolio", labels: overallPerfData.labels, data: overallPerfData.data }]);
   } else {
     overallViewBtn.classList.remove("active");
@@ -423,8 +466,7 @@ function switchViewMode(mode) {
 
     const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
     const assets = assetsByPortfolio[selectedPortfolioId] || [];
-    const { marketValue } = calculatePortfolioMetrics(assets);
-    const perfData = buildTrendFromAssets(assets);
+    const perfData = await getPortfolioTrendData(selectedPortfolioId, assets);
     renderPerformanceTrendChart([{ label: selectedPortfolio.name, labels: perfData.labels, data: perfData.data }]);
   }
 }
@@ -480,19 +522,18 @@ async function init() {
   if (!portfolios.length) return;
 
   populatePortfolioDropdown();
-  switchViewMode("overall");
+  await switchViewMode("overall");
 
-  overallViewBtn.addEventListener("click", () => switchViewMode("overall"));
-  individualViewBtn.addEventListener("click", () => switchViewMode("individual"));
-  selectEl.addEventListener("change", () => {
+  overallViewBtn.addEventListener("click", async () => switchViewMode("overall"));
+  individualViewBtn.addEventListener("click", async () => switchViewMode("individual"));
+  selectEl.addEventListener("change", async () => {
     const selectedPortfolioId = parseInt(selectEl.value);
     renderIndividualPerformanceChart(selectedPortfolioId);
     renderSelectedPortfolioSummary();
     
     const selectedPortfolio = portfolios.find(p => p.id === selectedPortfolioId);
     const assets = assetsByPortfolio[selectedPortfolioId] || [];
-    const { marketValue } = calculatePortfolioMetrics(assets);
-    const perfData = buildTrendFromAssets(assets);
+    const perfData = await getPortfolioTrendData(selectedPortfolioId, assets);
     renderPerformanceTrendChart([{ label: selectedPortfolio.name, labels: perfData.labels, data: perfData.data }]);
   });
 }

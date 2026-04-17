@@ -28,6 +28,7 @@ let pActivePortfolioId = null;
 let pActiveAssets = [];
 let perfChart = null;
 let hiddenDatasets = new Set();
+let pAssetSeriesCache = new Map();
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const stripEl         = document.getElementById("perfPortfolioStrip");
@@ -63,49 +64,6 @@ function now() {
   return new Date();
 }
 
-// ── Generate deterministic history ─────────────────────────────────────
-/**
- * Build an estimated deterministic series for an asset.
- * Starts at purchase price on purchase date and linearly interpolates to current price today.
- */
-function generateHistory(asset, rangeDays) {
-  const endDate   = now();
-  const startDate = new Date(endDate);
-  startDate.setDate(startDate.getDate() - rangeDays);
-
-  const totalDays = Math.max(1, Math.min(rangeDays, 1825));
-  const step = Math.max(1, Math.floor(totalDays / 80));
-
-  const purchaseDate = asset.datePurchased
-    ? new Date(asset.datePurchased)
-    : new Date(endDate.getFullYear() - 2, 0, 1);
-
-  const seriesStart = purchaseDate > startDate ? purchaseDate : startDate;
-  const basePrice = Number(asset.purchasePrice ?? 0);
-  const endPrice = Number(asset.currentPrice ?? basePrice);
-
-  // If purchase is in the future relative to the selected range, no data.
-  if (seriesStart > endDate) {
-    return [];
-  }
-
-  // Build deterministic interpolation points from purchase -> current price.
-  const points = [];
-  let d = new Date(seriesStart);
-  while (d <= endDate) {
-    const denominator = Math.max(endDate.getTime() - purchaseDate.getTime(), 1);
-    const progress = Math.max(0, Math.min(1, (d.getTime() - purchaseDate.getTime()) / denominator));
-    const interpolated = basePrice + (endPrice - basePrice) * progress;
-    points.push({ x: new Date(d), y: parseFloat(interpolated.toFixed(2)) });
-    d = new Date(d);
-    d.setDate(d.getDate() + step);
-  }
-
-  points[points.length - 1] = { x: new Date(endDate), y: endPrice };
-
-  return points;
-}
-
 function rangeToDays(range) {
   switch (range) {
     case "3m":  return 90;
@@ -115,6 +73,41 @@ function rangeToDays(range) {
     case "all": return 1825;
     default:    return 365;
   }
+}
+
+function filterSeriesByRange(points, range) {
+  if (!Array.isArray(points) || points.length === 0) return [];
+  if (range === "all") return points;
+
+  const days = rangeToDays(range);
+  const endDate = now();
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - days);
+
+  return points.filter(point => {
+    const d = new Date(point.x);
+    return !Number.isNaN(d.getTime()) && d >= startDate && d <= endDate;
+  });
+}
+
+async function fetchAssetPerformanceSeries(assetId) {
+  const cacheKey = String(assetId);
+  if (pAssetSeriesCache.has(cacheKey)) {
+    return pAssetSeriesCache.get(cacheKey);
+  }
+
+  const rawSeries = await apiGet(`/api/assets/${assetId}/performance?ts=${Date.now()}`, {
+    cache: "no-store"
+  });
+
+  const mapped = Array.isArray(rawSeries)
+    ? rawSeries
+        .map(p => ({ x: new Date(p.date), y: Number(p.totalValue ?? 0) }))
+        .filter(p => !Number.isNaN(p.x.getTime()))
+    : [];
+
+  pAssetSeriesCache.set(cacheKey, mapped);
+  return mapped;
 }
 
 // ── Portfolio summary helpers ─────────────────────────────────────────────
@@ -305,7 +298,7 @@ function toggleDataset(index, chip) {
 }
 
 // ── Chart rendering ───────────────────────────────────────────────────────
-function renderChart(assets, range) {
+async function renderChart(assets, range) {
   const ctx = document.getElementById("perfStockChart").getContext("2d");
   const days = rangeToDays(range);
 
@@ -315,8 +308,17 @@ function renderChart(assets, range) {
     ? assets
     : assets.filter(a => String(a.id) === selectedVal);
 
+  const seriesList = await Promise.all(targetAssets.map(async asset => {
+    try {
+      const fullSeries = await fetchAssetPerformanceSeries(asset.id);
+      return filterSeriesByRange(fullSeries, range);
+    } catch {
+      return [];
+    }
+  }));
+
   const datasets = targetAssets.map((asset, i) => {
-    const history = generateHistory(asset, days);
+    const history = seriesList[i] || [];
     const color   = CHART_COLORS[i % CHART_COLORS.length];
     return {
       label: asset.ticker,
@@ -419,20 +421,21 @@ async function selectPortfolio(id) {
   }
 
   pActiveAssets = assets;
+  pAssetSeriesCache = new Map();
 
   const portfolio = pPortfolios.find(p => String(p.id) === String(id));
   renderStatsPanel(portfolio, assets);
   populateStockDropdown(assets);
-  renderChart(assets, rangeSelectEl.value);
+  await renderChart(assets, rangeSelectEl.value);
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────
-stockSelectEl.addEventListener("change", () => {
-  renderChart(pActiveAssets, rangeSelectEl.value);
+stockSelectEl.addEventListener("change", async () => {
+  await renderChart(pActiveAssets, rangeSelectEl.value);
 });
 
-rangeSelectEl.addEventListener("change", () => {
-  renderChart(pActiveAssets, rangeSelectEl.value);
+rangeSelectEl.addEventListener("change", async () => {
+  await renderChart(pActiveAssets, rangeSelectEl.value);
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────

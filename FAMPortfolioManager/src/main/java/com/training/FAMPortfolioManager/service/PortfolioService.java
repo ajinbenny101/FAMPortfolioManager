@@ -37,7 +37,9 @@ package com.training.FAMPortfolioManager.service;
 // import java.util.stream.Collectors.groupingBy;
 // import java.time.LocalDate;
 import com.training.FAMPortfolioManager.model.Portfolio;
+import com.training.FAMPortfolioManager.model.Asset;
 // import com.training.FAMPortfolioManager.repository.AssetRepository;
+import com.training.FAMPortfolioManager.repository.AssetRepository;
 import com.training.FAMPortfolioManager.repository.PortfolioRepository;
 
 // import jakarta.transaction.Transactional;
@@ -45,6 +47,7 @@ import com.training.FAMPortfolioManager.repository.PortfolioRepository;
 import com.training.FAMPortfolioManager.dto.PortfolioRequestDTO;
 import com.training.FAMPortfolioManager.dto.PortfolioResponseDto;
 import com.training.FAMPortfolioManager.dto.AssetResponseDto;
+import com.training.FAMPortfolioManager.dto.PerformanceDataPointDto;
 // import com.training.FAMPortfolioManager.dto.PerformanceDataPointDto;
 
 import org.springframework.stereotype.Service;
@@ -52,19 +55,27 @@ import org.springframework.stereotype.Service;
 // import java.time.LocalDate;
 // import java.time.LocalDateTime;
 // import java.util.HashMap;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 @Service
 public class PortfolioService {
 
     
     private final PortfolioRepository portfolioRepository;
-    // private final AssetRepository assetRepository;
-    // private final PriceService priceService;
+    private final AssetRepository assetRepository;
+    private final PriceService priceService;
 
-        public PortfolioService(PortfolioRepository portfolioRepository) {
+        public PortfolioService(PortfolioRepository portfolioRepository,
+                AssetRepository assetRepository,
+                PriceService priceService) {
         this.portfolioRepository = portfolioRepository;
-  
+        this.assetRepository = assetRepository;
+        this.priceService = priceService;
     }
     //WHEN BUISNESS LOGIC METHODS ARE ADDED, UNCOMMENT BELOW CONSTRUCTOR AND FIELDS
     // public PortfolioService(PortfolioRepository portfolioRepository, AssetRepository assetRepository, PriceService priceService) {
@@ -118,6 +129,104 @@ public class PortfolioService {
                 .orElseThrow(() -> new RuntimeException("Portfolio not found"));
 
         portfolioRepository.delete(portfolio);
+    }
+
+    public List<PerformanceDataPointDto> getPortfolioPerformance(Long portfolioId) {
+        List<Asset> assets = assetRepository.findByPortfolioId(portfolioId);
+        return buildPerformanceSeries(assets);
+    }
+
+    public List<PerformanceDataPointDto> getOverallPerformance() {
+        List<Asset> assets = assetRepository.findAll();
+        return buildPerformanceSeries(assets);
+    }
+
+    private List<PerformanceDataPointDto> buildPerformanceSeries(List<Asset> assets) {
+        if (assets == null || assets.isEmpty()) {
+            return List.of();
+        }
+
+        List<Asset> datedAssets = assets.stream()
+                .filter(a -> a.getDatePurchased() != null)
+                .collect(Collectors.toList());
+
+        if (datedAssets.isEmpty()) {
+            return List.of();
+        }
+
+        YearMonth startMonth = datedAssets.stream()
+                .map(a -> YearMonth.from(a.getDatePurchased().toLocalDate()))
+                .min(YearMonth::compareTo)
+                .orElse(YearMonth.now());
+
+        YearMonth endMonth = YearMonth.now();
+
+        Map<String, LocalDate> earliestByTicker = new HashMap<>();
+        for (Asset asset : datedAssets) {
+            String ticker = asset.getTicker() == null ? null : asset.getTicker().trim().toUpperCase();
+            if (ticker == null || ticker.isBlank()) {
+                continue;
+            }
+            LocalDate purchaseDate = asset.getDatePurchased().toLocalDate();
+            LocalDate existing = earliestByTicker.get(ticker);
+            if (existing == null || purchaseDate.isBefore(existing)) {
+                earliestByTicker.put(ticker, purchaseDate);
+            }
+        }
+
+        for (Map.Entry<String, LocalDate> entry : earliestByTicker.entrySet()) {
+            priceService.ensureMonthlySeriesStored(entry.getKey(), entry.getValue(), LocalDate.now());
+        }
+
+        List<PerformanceDataPointDto> series = new ArrayList<>();
+        YearMonth cursor = startMonth;
+
+        while (!cursor.isAfter(endMonth)) {
+            LocalDate monthDate = cursor.atDay(1);
+            double totalValue = 0.0;
+
+            for (Asset asset : datedAssets) {
+                YearMonth purchaseMonth = YearMonth.from(asset.getDatePurchased().toLocalDate());
+                if (cursor.isBefore(purchaseMonth)) {
+                    continue;
+                }
+
+                double unitPrice = resolveMonthlyPrice(asset, monthDate, cursor.equals(endMonth));
+                totalValue += unitPrice * asset.getQuantity();
+            }
+
+            series.add(new PerformanceDataPointDto(monthDate, round(totalValue)));
+            cursor = cursor.plusMonths(1);
+        }
+
+        return series;
+    }
+
+    private double resolveMonthlyPrice(Asset asset, LocalDate monthDate, boolean isCurrentMonth) {
+        try {
+            Double stored = priceService.getMonthlyClosePrice(asset.getTicker(), monthDate);
+            if (stored != null && stored > 0) {
+                return stored;
+            }
+        } catch (RuntimeException ignored) {
+            // Falls through to next fallback.
+        }
+
+        if (isCurrentMonth) {
+            try {
+                return priceService.getCurrentPrice(asset.getTicker());
+            } catch (RuntimeException ignored) {
+                // Falls through to purchase price.
+            }
+        }
+
+        return asset.getPurchasePrice();
+    }
+
+    private double round(double value) {
+        return new java.math.BigDecimal(value)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     //     // BUSINESS LOGIC: getSummary

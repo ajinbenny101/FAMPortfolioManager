@@ -1,7 +1,15 @@
 package com.training.FAMPortfolioManager.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import com.training.FAMPortfolioManager.model.AssetMonthlyPrice;
+import com.training.FAMPortfolioManager.repository.AssetMonthlyPriceRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -24,19 +32,27 @@ public class PriceService {
     private static final String FRESH_PRICE_CACHE = "stockPrices";
     private static final String STALE_PRICE_CACHE = "stockPricesFallback";
     private static final String FAILURE_PRICE_CACHE = "stockPriceFailures";
+    private static final String HISTORY_FAILURE_CACHE = "stockHistoryFailures";
 
     @Value("${twelvedata.api.key}")
     private String apiKey;
 
-    @Value("${twelvedata.base.url}")
-    private String baseUrl;
+    @Value("${twelvedata.price.url}")
+    private String priceUrl;
+
+    @Value("${twelvedata.time-series.url}")
+    private String timeSeriesUrl;
 
     private final RestTemplate restTemplate;
     private final CacheManager cacheManager;
+    private final AssetMonthlyPriceRepository assetMonthlyPriceRepository;
     
-    public PriceService(RestTemplate restTemplate, CacheManager cacheManager) {
+    public PriceService(RestTemplate restTemplate,
+            CacheManager cacheManager,
+            AssetMonthlyPriceRepository assetMonthlyPriceRepository) {
         this.restTemplate = restTemplate;
         this.cacheManager = cacheManager;
+        this.assetMonthlyPriceRepository = assetMonthlyPriceRepository;
     }
     // Fetches the current price for a given stock ticker symbol using Twelve Data.
 
@@ -82,7 +98,7 @@ public class PriceService {
 
         // Twelve Data price endpoint returns a compact payload like:
         // { "price": "123.45" }
-        String url = UriComponentsBuilder.fromUriString(baseUrl)
+        String url = UriComponentsBuilder.fromUriString(priceUrl)
                 .queryParam("symbol", symbol)
                 .queryParam("apikey", apiKey)
                 .toUriString();
@@ -127,6 +143,152 @@ public class PriceService {
         }
     }
 
+    public void ensureMonthlySeriesStored(String symbol, LocalDate fromDate, LocalDate toDate) {
+        String normalizedSymbol = normalizeSymbol(symbol);
+        LocalDate startMonth = YearMonth.from(fromDate).atDay(1);
+        LocalDate endMonth = YearMonth.from(toDate).atDay(1);
+
+        if (startMonth.isAfter(endMonth)) {
+            return;
+        }
+
+        if (hasStoredCoverage(normalizedSymbol, startMonth, endMonth)) {
+            return;
+        }
+
+        String historyFailureKey = "history:" + normalizedSymbol;
+        String cachedFailure = getCachedHistoryFailure(historyFailureKey);
+        if (cachedFailure != null) {
+            LOGGER.debug("Skipping Twelve Data history call for {} due to cached provider failure: {}", normalizedSymbol, cachedFailure);
+            return;
+        }
+
+        try {
+            fetchAndPersistMonthlySeries(normalizedSymbol, startMonth, endMonth);
+            clearCachedHistoryFailure(historyFailureKey);
+        } catch (RuntimeException ex) {
+            cacheHistoryFailure(historyFailureKey, ex.getMessage());
+            LOGGER.warn("Could not hydrate monthly history for {}: {}", normalizedSymbol, ex.getMessage());
+        }
+    }
+
+    public Double getMonthlyClosePrice(String symbol, LocalDate monthDate) {
+        String normalizedSymbol = normalizeSymbol(symbol);
+        LocalDate month = YearMonth.from(monthDate).atDay(1);
+        AssetMonthlyPrice row = assetMonthlyPriceRepository
+                .findTopByTickerAndPriceDateLessThanEqualOrderByPriceDateDesc(normalizedSymbol, month);
+        return row == null ? null : row.getClosePrice();
+    }
+
+    private boolean hasStoredCoverage(String symbol, LocalDate startMonth, LocalDate endMonth) {
+        AssetMonthlyPrice earliest = assetMonthlyPriceRepository.findTopByTickerOrderByPriceDateAsc(symbol);
+        AssetMonthlyPrice latest = assetMonthlyPriceRepository.findTopByTickerOrderByPriceDateDesc(symbol);
+        if (earliest == null || latest == null) {
+            return false;
+        }
+
+        LocalDate requiredLatest = endMonth.isAfter(LocalDate.now().withDayOfMonth(1))
+                ? LocalDate.now().withDayOfMonth(1)
+                : endMonth;
+
+        return !earliest.getPriceDate().isAfter(startMonth)
+                && !latest.getPriceDate().isBefore(requiredLatest.minusMonths(1));
+    }
+
+    private void fetchAndPersistMonthlySeries(String symbol, LocalDate startMonth, LocalDate endMonth) {
+        if (apiKey == null || apiKey.isBlank() || "YOUR_KEY".equalsIgnoreCase(apiKey)) {
+            throw new IllegalStateException("Twelve Data API key is not configured. Set twelvedata.api.key in application.properties.");
+        }
+
+        String url = UriComponentsBuilder.fromUriString(timeSeriesUrl)
+                .queryParam("symbol", symbol)
+                .queryParam("interval", "1month")
+                .queryParam("start_date", startMonth)
+                .queryParam("end_date", endMonth.plusMonths(1))
+                .queryParam("order", "ASC")
+                .queryParam("apikey", apiKey)
+                .toUriString();
+
+        Map<?, ?> response;
+        try {
+            response = restTemplate.getForObject(url, Map.class);
+        } catch (RestClientException ex) {
+            throw new IllegalStateException("Failed to reach Twelve Data time series endpoint for symbol: " + symbol, ex);
+        }
+
+        if (response == null || response.isEmpty()) {
+            throw new IllegalStateException("No response from Twelve Data time series endpoint for symbol: " + symbol);
+        }
+
+        Object status = response.get("status");
+        if (status != null && "error".equalsIgnoreCase(status.toString())) {
+            Object message = response.get("message");
+            String details = message == null ? "Unknown Twelve Data time-series error." : message.toString();
+            throw new IllegalStateException("Twelve Data error for symbol " + symbol + ": " + details);
+        }
+
+        Object valuesObj = response.get("values");
+        if (!(valuesObj instanceof List<?> values) || values.isEmpty()) {
+            throw new IllegalStateException("No monthly values returned by Twelve Data for symbol: " + symbol);
+        }
+
+        List<AssetMonthlyPrice> toSave = new ArrayList<>();
+
+        for (Object rowObj : values) {
+            if (!(rowObj instanceof Map<?, ?> row)) {
+                continue;
+            }
+
+            Object dt = row.get("datetime");
+            Object close = row.get("close");
+            if (dt == null || close == null) {
+                continue;
+            }
+
+            LocalDate rowDate = parseDate(dt.toString());
+            LocalDate monthDate = YearMonth.from(rowDate).atDay(1);
+
+            double closePrice;
+            try {
+                closePrice = Double.parseDouble(close.toString());
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+
+            if (closePrice <= 0) {
+                continue;
+            }
+
+            AssetMonthlyPrice existing = assetMonthlyPriceRepository
+                    .findByTickerAndPriceDate(symbol, monthDate)
+                    .orElse(null);
+
+            if (existing == null) {
+                AssetMonthlyPrice created = new AssetMonthlyPrice();
+                created.setTicker(symbol);
+                created.setPriceDate(monthDate);
+                created.setClosePrice(closePrice);
+                created.setFetchedAt(LocalDateTime.now());
+                toSave.add(created);
+            } else {
+                existing.setClosePrice(closePrice);
+                existing.setFetchedAt(LocalDateTime.now());
+                toSave.add(existing);
+            }
+        }
+
+        if (!toSave.isEmpty()) {
+            assetMonthlyPriceRepository.saveAll(toSave);
+        }
+    }
+
+    private LocalDate parseDate(String raw) {
+        if (raw.length() >= 10) {
+            return LocalDate.parse(raw.substring(0, 10));
+        }
+        throw new IllegalArgumentException("Invalid date returned by provider: " + raw);
+    }
+
     private String normalizeSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             throw new IllegalArgumentException("Ticker symbol is required");
@@ -162,6 +324,25 @@ public class PriceService {
         Cache cache = cacheManager.getCache(FAILURE_PRICE_CACHE);
         if (cache != null) {
             cache.evict(symbol);
+        }
+    }
+
+    private String getCachedHistoryFailure(String key) {
+        Cache cache = cacheManager.getCache(HISTORY_FAILURE_CACHE);
+        return cache == null ? null : cache.get(key, String.class);
+    }
+
+    private void cacheHistoryFailure(String key, String message) {
+        Cache cache = cacheManager.getCache(HISTORY_FAILURE_CACHE);
+        if (cache != null) {
+            cache.put(key, message);
+        }
+    }
+
+    private void clearCachedHistoryFailure(String key) {
+        Cache cache = cacheManager.getCache(HISTORY_FAILURE_CACHE);
+        if (cache != null) {
+            cache.evict(key);
         }
     }
 }
