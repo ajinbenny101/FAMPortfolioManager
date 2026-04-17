@@ -1,95 +1,167 @@
 package com.training.FAMPortfolioManager.service;
 
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-// PriceService - external price data service
-// Annotate with @Service
-// DEPENDENCY INJECTION:
-//   @Autowired or constructor injection of:
-//     - RestTemplate (configure as @Bean in config)
-//     - or WebClient (Spring WebFlux alternative)
-//
-// Methods:
-//   double getCurrentPrice(String ticker) - calls Yahoo Finance API for latest price
-//     Returns: double - current market price for the given ticker
-//     API URL example: https://query1.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=price
-//   double getPriceAtDate(String ticker, LocalDate date) - fetches historical price
-//     Returns: double - historical price closest to the specified date
-//     API URL with date range: https://query1.finance.yahoo.com/v7/finance/download/{ticker}?...
-// Used by AssetService and PortfolioService to fetch market data
-//
-// IMPORTS NEEDED:
-// import org.springframework.stereotype.Service;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.web.client.RestTemplate;
-// import org.springframework.cache.annotation.Cacheable;
-// import java.time.LocalDate;
-// import java.util.Optional;
-// import org.springframework.http.ResponseEntity;
-// import org.json.JSONObject; // or Jackson ObjectMapper
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// This service class is responsible for fetching current and historical price data for assets. 
-// It uses RestTemplate to call the Yahoo Finance API and retrieves the necessary price information.
+// PriceService - external price data service backed by Twelve Data.
+// It retrieves latest prices and cooperates with the cache layer so repeated
+// UI refreshes do not exhaust the provider unnecessarily.
 @Service
 public class PriceService {
 
-   // @Value annotations to inject API key and base URL from application.properties
-    @Value("${alphavantage.api.key}")
+    private static final Logger LOGGER = LoggerFactory.getLogger(PriceService.class);
+    private static final String FRESH_PRICE_CACHE = "stockPrices";
+    private static final String STALE_PRICE_CACHE = "stockPricesFallback";
+    private static final String FAILURE_PRICE_CACHE = "stockPriceFailures";
+
+    @Value("${twelvedata.api.key}")
     private String apiKey;
 
-    @Value("${alphavantage.base.url}")
+    @Value("${twelvedata.base.url}")
     private String baseUrl;
 
     private final RestTemplate restTemplate;
+    private final CacheManager cacheManager;
     
-    public PriceService(RestTemplate restTemplate) {
+    public PriceService(RestTemplate restTemplate, CacheManager cacheManager) {
         this.restTemplate = restTemplate;
+        this.cacheManager = cacheManager;
     }
-    // Fetches the current price for a given stock ticker symbol using the Alpha Vantage API.
+    // Fetches the current price for a given stock ticker symbol using Twelve Data.
 
-    @SuppressWarnings("unchecked")
-    @Cacheable(value = "stockPrices", key = "#symbol")
     public double getCurrentPrice(String symbol) {
-        if (apiKey == null || apiKey.isBlank() || "YOUR_KEY".equalsIgnoreCase(apiKey)) {
-            throw new IllegalStateException("Alpha Vantage API key is not configured. Set alphavantage.api.key in application.properties.");
+        String normalizedSymbol = normalizeSymbol(symbol);
+        Double freshCachedPrice = getCachedPrice(FRESH_PRICE_CACHE, normalizedSymbol);
+        if (freshCachedPrice != null) {
+            return freshCachedPrice;
         }
 
-        // This constructs the URL for the API call, including query parameters for the function, symbol, and API key.
+        Double staleCachedPrice = getCachedPrice(STALE_PRICE_CACHE, normalizedSymbol);
+        String cachedFailure = getCachedFailure(normalizedSymbol);
+        if (cachedFailure != null) {
+            if (staleCachedPrice != null) {
+                cachePrice(FRESH_PRICE_CACHE, normalizedSymbol, staleCachedPrice);
+                return staleCachedPrice;
+            }
+            throw new IllegalStateException(cachedFailure);
+        }
+
+        try {
+            double latestPrice = fetchCurrentPrice(normalizedSymbol);
+            cachePrice(FRESH_PRICE_CACHE, normalizedSymbol, latestPrice);
+            cachePrice(STALE_PRICE_CACHE, normalizedSymbol, latestPrice);
+            clearCachedFailure(normalizedSymbol);
+            return latestPrice;
+        } catch (RuntimeException ex) {
+            cacheFailure(normalizedSymbol, ex.getMessage());
+            if (staleCachedPrice != null) {
+                LOGGER.warn("Using stale cached price for symbol {} after provider failure: {}", normalizedSymbol, ex.getMessage());
+                cachePrice(FRESH_PRICE_CACHE, normalizedSymbol, staleCachedPrice);
+                return staleCachedPrice;
+            }
+
+            throw ex;
+        }
+    }
+
+    private double fetchCurrentPrice(String symbol) {
+        if (apiKey == null || apiKey.isBlank() || "YOUR_KEY".equalsIgnoreCase(apiKey)) {
+            throw new IllegalStateException("Twelve Data API key is not configured. Set twelvedata.api.key in application.properties.");
+        }
+
+        // Twelve Data price endpoint returns a compact payload like:
+        // { "price": "123.45" }
         String url = UriComponentsBuilder.fromUriString(baseUrl)
-                .queryParam("function", "GLOBAL_QUOTE")
                 .queryParam("symbol", symbol)
                 .queryParam("apikey", apiKey)
                 .toUriString();
 
-        // This makes the HTTP GET request to the Alpha Vantage API and expects a JSON response that can be mapped to a Map.
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null || response.isEmpty()) {
-            throw new IllegalStateException("No response from Alpha Vantage for symbol: " + symbol);
-        }
-
-        if (response.containsKey("Note")) {
-            throw new IllegalStateException("Alpha Vantage rate limit reached. Please retry shortly.");
-        }
-
-        Object quoteObject = response.get("Global Quote");
-        if (!(quoteObject instanceof Map<?, ?> quote)) {
-            throw new IllegalStateException("Missing Global Quote in Alpha Vantage response for symbol: " + symbol);
-        }
-
-        Object priceValue = quote.get("05. price");
-        if (priceValue == null) {
-            throw new IllegalStateException("Missing price field in Alpha Vantage response for symbol: " + symbol);
-        }
+        Map<?, ?> response;
         try {
-            return Double.parseDouble(priceValue.toString());
+            response = restTemplate.getForObject(url, Map.class);
+        } catch (RestClientException ex) {
+            throw new IllegalStateException("Failed to reach Twelve Data for symbol: " + symbol, ex);
+        }
+
+        if (response == null || response.isEmpty()) {
+            throw new IllegalStateException("No response from Twelve Data for symbol: " + symbol);
+        }
+
+        Object status = response.get("status");
+        if (status != null && "error".equalsIgnoreCase(status.toString())) {
+            Object message = response.get("message");
+            String details = message == null ? "Unknown Twelve Data error." : message.toString();
+            throw new IllegalStateException("Twelve Data error for symbol " + symbol + ": " + details);
+        }
+
+        if (response.containsKey("code") && !response.containsKey("price")) {
+            Object message = response.get("message");
+            String details = message == null ? "Unknown Twelve Data error." : message.toString();
+            throw new IllegalStateException("Twelve Data rejected symbol " + symbol + ": " + details);
+        }
+
+        Object priceValue = response.get("price");
+        if (priceValue == null || priceValue.toString().isBlank()) {
+            throw new IllegalStateException("Missing price field in Twelve Data response for symbol: " + symbol);
+        }
+
+        try {
+            double parsedPrice = Double.parseDouble(priceValue.toString());
+            if (parsedPrice <= 0) {
+                throw new IllegalStateException("Twelve Data returned a non-positive price for symbol: " + symbol);
+            }
+            return parsedPrice;
         } catch (NumberFormatException ex) {
-            throw new IllegalStateException("Invalid price value returned by Alpha Vantage for symbol: " + symbol, ex);
+            throw new IllegalStateException("Invalid price value returned by Twelve Data for symbol: " + symbol, ex);
+        }
+    }
+
+    private String normalizeSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            throw new IllegalArgumentException("Ticker symbol is required");
+        }
+        return symbol.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private Double getCachedPrice(String cacheName, String symbol) {
+        Cache cache = cacheManager.getCache(cacheName);
+        return cache == null ? null : cache.get(symbol, Double.class);
+    }
+
+    private void cachePrice(String cacheName, String symbol, double price) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.put(symbol, price);
+        }
+    }
+
+    private String getCachedFailure(String symbol) {
+        Cache cache = cacheManager.getCache(FAILURE_PRICE_CACHE);
+        return cache == null ? null : cache.get(symbol, String.class);
+    }
+
+    private void cacheFailure(String symbol, String message) {
+        Cache cache = cacheManager.getCache(FAILURE_PRICE_CACHE);
+        if (cache != null) {
+            cache.put(symbol, message);
+        }
+    }
+
+    private void clearCachedFailure(String symbol) {
+        Cache cache = cacheManager.getCache(FAILURE_PRICE_CACHE);
+        if (cache != null) {
+            cache.evict(symbol);
         }
     }
 }
