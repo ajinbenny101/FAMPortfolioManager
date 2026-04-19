@@ -37,6 +37,10 @@ const clearFiltersEl      = document.getElementById("clearFiltersBtn");
 const selectAllEl         = document.getElementById("selectAllCheckbox");
 const selectionSummaryEl  = document.getElementById("selectionSummary");
 const emptyStateEl        = document.getElementById("emptyState");
+const addPortfolioTopBtn  = document.getElementById("btnAddPortfolioTop");
+const addPortfolioBtn     = document.getElementById("btnAddPortfolio");
+const updatePortfolioBtn  = document.getElementById("btnUpdatePortfolio");
+const removePortfolioBtn  = document.getElementById("btnRemovePortfolio");
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function setHoldingsStatus(msg, isError = false) {
@@ -89,10 +93,25 @@ async function loadAllPortfolioSummaries() {
       <div class="portfolio-card__return ${totalPL >= 0 ? "positive" : "negative"}">
         ${totalPL >= 0 ? "▲" : "▼"} ${retPct.toFixed(2)}%
       </div>
+      <div class="portfolio-card__actions">
+        <button class="portfolio-card__action" type="button" data-action="edit" data-portfolio-id="${portfolio.id}" aria-label="Update portfolio" title="Update portfolio">✎</button>
+        <button class="portfolio-card__action portfolio-card__action--danger" type="button" data-action="delete" data-portfolio-id="${portfolio.id}" aria-label="Remove portfolio" title="Remove portfolio">🗑</button>
+      </div>
     `;
-    card.addEventListener("click", () => switchPortfolio(portfolio.id));
+    card.addEventListener("click", (event) => {
+      if (event.target.closest(".portfolio-card__actions")) return;
+      switchPortfolio(portfolio.id);
+    });
     portfolioStripEl.appendChild(card);
   }
+
+  const addCard = document.createElement("button");
+  addCard.type = "button";
+  addCard.className = "portfolio-card portfolio-card--add";
+  addCard.setAttribute("aria-label", "Add portfolio");
+  addCard.innerHTML = `<span class="portfolio-card__add-label">+ Add Portfolio</span>`;
+  addCard.addEventListener("click", openAddPortfolioModal);
+  portfolioStripEl.appendChild(addCard);
 }
 
 function updateStripActiveState() {
@@ -307,7 +326,63 @@ function populatePortfolioDropdowns() {
   });
 }
 
+function openAddPortfolioModal() {
+  clearError("addPortfolioError");
+  document.getElementById("addPortfolioName").value = "";
+  openModal("modalAddPortfolio");
+}
+
+function openUpdatePortfolioModal(portfolioId) {
+  clearError("updatePortfolioError");
+  populatePortfolioDropdowns();
+
+  const selectEl = document.getElementById("updatePortfolioSelect");
+  const nameEl = document.getElementById("updatePortfolioName");
+  if (!selectEl || !nameEl) return;
+
+  const safeId = Number(portfolioId) || Number(hActivePortfolioId) || Number(hPortfolios[0]?.id);
+  if (safeId) {
+    selectEl.value = String(safeId);
+  }
+
+  const selectedId = Number(selectEl.value);
+  const selectedPortfolio = hPortfolios.find(x => Number(x.id) === selectedId);
+  nameEl.value = selectedPortfolio?.name ?? "";
+
+  openModal("modalUpdatePortfolio");
+}
+
+function openRemovePortfolioModal(portfolioId) {
+  clearError("removePortfolioError");
+  populatePortfolioDropdowns();
+
+  const selectEl = document.getElementById("removePortfolioSelect");
+  if (!selectEl) return;
+
+  const safeId = Number(portfolioId) || Number(hActivePortfolioId) || Number(hPortfolios[0]?.id);
+  if (safeId) {
+    selectEl.value = String(safeId);
+  }
+
+  openModal("modalRemovePortfolio");
+}
+
 // ── CRUD handlers (backend-backed workflows) ───────────────────────────────
+
+portfolioStripEl.addEventListener("click", (event) => {
+  const actionBtn = event.target.closest(".portfolio-card__action");
+  if (!actionBtn) return;
+
+  event.stopPropagation();
+  const portfolioId = Number(actionBtn.dataset.portfolioId);
+  if (!portfolioId) return;
+
+  if (actionBtn.dataset.action === "edit") {
+    openUpdatePortfolioModal(portfolioId);
+  } else if (actionBtn.dataset.action === "delete") {
+    openRemovePortfolioModal(portfolioId);
+  }
+});
 
 // Add stock
 document.getElementById("btnAddStock").addEventListener("click", () => {
@@ -464,11 +539,13 @@ document.getElementById("btnConfirmRemoveStock").addEventListener("click", async
 });
 
 // Add portfolio
-document.getElementById("btnAddPortfolio").addEventListener("click", () => {
-  clearError("addPortfolioError");
-  document.getElementById("addPortfolioName").value = "";
-  openModal("modalAddPortfolio");
-});
+if (addPortfolioTopBtn) {
+  addPortfolioTopBtn.addEventListener("click", openAddPortfolioModal);
+}
+
+if (addPortfolioBtn) {
+  addPortfolioBtn.addEventListener("click", openAddPortfolioModal);
+}
 
 document.getElementById("btnConfirmAddPortfolio").addEventListener("click", async () => {
   clearError("addPortfolioError");
@@ -490,12 +567,11 @@ document.getElementById("btnConfirmAddPortfolio").addEventListener("click", asyn
 });
 
 // Update portfolio
-document.getElementById("btnUpdatePortfolio").addEventListener("click", () => {
-  clearError("updatePortfolioError");
-  populatePortfolioDropdowns();
-  document.getElementById("updatePortfolioName").value = "";
-  openModal("modalUpdatePortfolio");
-});
+if (updatePortfolioBtn) {
+  updatePortfolioBtn.addEventListener("click", () => {
+    openUpdatePortfolioModal(Number(hActivePortfolioId));
+  });
+}
 
 document.getElementById("btnConfirmUpdatePortfolio").addEventListener("click", async () => {
   clearError("updatePortfolioError");
@@ -523,11 +599,11 @@ document.getElementById("btnConfirmUpdatePortfolio").addEventListener("click", a
 });
 
 // Remove portfolio
-document.getElementById("btnRemovePortfolio").addEventListener("click", () => {
-  clearError("removePortfolioError");
-  populatePortfolioDropdowns();
-  openModal("modalRemovePortfolio");
-});
+if (removePortfolioBtn) {
+  removePortfolioBtn.addEventListener("click", () => {
+    openRemovePortfolioModal(Number(hActivePortfolioId));
+  });
+}
 
 document.getElementById("btnConfirmRemovePortfolio").addEventListener("click", async () => {
   clearError("removePortfolioError");
@@ -606,6 +682,8 @@ async function holdingsInit() {
   }
 
   if (!hPortfolios.length) {
+    hActivePortfolioId = null;
+    loadAllPortfolioSummaries();
     setHoldingsStatus("No portfolios found.");
     return;
   }

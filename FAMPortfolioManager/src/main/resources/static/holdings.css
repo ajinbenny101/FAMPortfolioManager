@@ -11,6 +11,23 @@
 }
 
 /* ---- Portfolio strip ---- */
+.portfolio-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.portfolio-strip-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.btn-add-portfolio-top {
+  padding: 0.45rem 0.95rem;
+  font-size: 0.86rem;
+}
+
 .portfolio-strip {
   display: flex;
   gap: 0.75rem;
@@ -60,6 +77,59 @@
 
 .portfolio-card__return.positive { color: var(--positive); }
 .portfolio-card__return.negative { color: #c62828; }
+
+.portfolio-card--add {
+  background: #f1f3f7;
+  border-style: dashed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 92px;
+}
+
+.portfolio-card--add:hover {
+  background: #e9edf5;
+}
+
+.portfolio-card__add-label {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.portfolio-card__actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.portfolio-card__action {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.portfolio-card__action:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: #f0f5ff;
+}
+
+.portfolio-card__action--danger:hover {
+  border-color: #e57373;
+  color: #c62828;
+  background: #fff5f5;
+}
 
 /* ---- Toolbar ---- */
 .holdings-toolbar {
@@ -505,6 +575,15 @@
 
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
+  .portfolio-strip-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-add-portfolio-top {
+    width: 100%;
+  }
+
   .holdings-body-grid {
     grid-template-columns: 1fr;
   }
