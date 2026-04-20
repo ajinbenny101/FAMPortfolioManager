@@ -1,11 +1,14 @@
 :root {
-  --bg: #f3f5f9;
+  --bg: #f4f8fb;
   --card: #ffffff;
-  --text: #283349;
-  --muted: #5f6f8f;
-  --primary: #2b78e4;
-  --border: #dde3ef;
-  --positive: #0a8f4e;
+  --text: #1f344d;
+  --muted: #5b708b;
+  --primary: #0d7ea8;
+  --primary-rgb: 13, 126, 168;
+  --primary-soft: #e8f4f9;
+  --surface-alt: #eaf2f7;
+  --border: #d3e2ec;
+  --positive: #0b8a5c;
 }
 
 * {
@@ -27,7 +30,7 @@ body {
 }
 
 .sidebar {
-  background: #eef2f9;
+  background: var(--surface-alt);
   border-right: 1px solid var(--border);
   padding: 1.5rem 1rem;
 }
@@ -74,6 +77,48 @@ nav {
   padding: 1.25rem;
   display: grid;
   gap: 1rem;
+}
+
+.ai-powered-note {
+  margin-top: 0;
+  margin-bottom: 0.15rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+/* Dashboard overall view: position AI attribution cleanly under banner */
+.content.dashboard-mode-overall .ai-powered-note {
+  margin-top: 1.05rem;
+  margin-bottom: -0.1rem;
+  text-align: left;
+  padding-left: 0.55rem;
+}
+
+.compliance-notice {
+  background: #f8fbfd;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.compliance-notice strong {
+  color: var(--text);
+}
+
+/* Dashboard overall view: tighter warning-box internals */
+.content.dashboard-mode-overall .compliance-notice {
+  padding: 0.55rem 0.75rem;
+  line-height: 1.35;
+}
+
+/* Dashboard overall view: hide portfolio selector label text */
+.content.dashboard-mode-overall .topbar label[for="portfolioSelect"] {
+  display: none;
 }
 
 .topbar {
@@ -279,6 +324,30 @@ td:last-child {
   opacity: 1;
   padding-top: 0.7rem;
   padding-bottom: 0.7rem;
+  margin-bottom: 0;
+}
+
+/* Default spacing between banner and topbar */
+.content > .alert-banner + .topbar {
+  margin-top: 0;
+}
+
+/* Dashboard overall view: tighter vertical rhythm */
+.content.dashboard-mode-overall > .alert-banner.alert-banner--visible {
+  margin-bottom: -1.7rem;
+}
+
+.content.dashboard-mode-overall > .alert-banner + .topbar {
+  margin-top: -1.5rem;
+}
+
+/* Dashboard individual view: reduce overlap/clashing with controls */
+.content.dashboard-mode-individual > .alert-banner.alert-banner--visible {
+  margin-bottom: -0.35rem;
+}
+
+.content.dashboard-mode-individual > .alert-banner + .topbar {
+  margin-top: -0.1rem;
 }
 
 /* ── Fully hidden / collapsed (JS adds this to dismiss) ──────── */
@@ -310,9 +379,9 @@ td:last-child {
 }
 
 .alert-banner--info {
-  background: #f0f5ff;
-  border-color: #b3cef5;
-  color: #1a3d6b;
+  background: var(--primary-soft);
+  border-color: #a8cfe0;
+  color: #1d536e;
 }
 
 /* ── Layout sections ─────────────────────────────────────────── */
@@ -441,10 +510,31 @@ td:last-child {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
+    padding: 0.95rem 1rem;
+  }
+
+  .sidebar-brand {
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+  }
+
+  nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .nav-item {
+    text-align: center;
+    padding: 0.55rem 0.5rem;
+    font-size: 0.9rem;
   }
 
   .brand-logo {
     width: min(100%, 280px);
+  }
+
+  .content {
+    padding: 1rem;
   }
 
   .chart-grid,
@@ -456,5 +546,71 @@ td:last-child {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .stats-inline {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 680px) {
+  .content {
+    padding: 0.8rem;
+    gap: 0.8rem;
+  }
+
+  .card {
+    padding: 0.85rem;
+  }
+
+  #portfolioSelect {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar-row {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .view-toggle {
+    flex: 1 1 170px;
+    text-align: center;
+  }
+
+  .chart-canvas-wrap {
+    height: 250px;
+  }
+
+  .stats-inline strong {
+    font-size: 1.1rem;
+  }
+
+  .compliance-notice {
+    font-size: 0.78rem;
+    padding: 0.6rem 0.7rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .sidebar h1 {
+    font-size: 1.1rem;
+  }
+
+  .nav-item {
+    font-size: 0.84rem;
+  }
+
+  .ai-powered-note {
+    font-size: 0.72rem;
+  }
+
+  .topbar {
+    padding: 0.8rem;
+  }
+
+  .stats-inline {
+    gap: 0.8rem;
   }
 }
