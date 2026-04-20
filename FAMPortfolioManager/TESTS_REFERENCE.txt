@@ -1,0 +1,66 @@
+Portfolio Manager Test Reference
+===============================
+
+Total active test classes: 6
+Total active test methods: 16
+
+Application smoke test
+----------------------
+Class: FAMPortfolioManager/src/test/java/com/training/FAMPortfolioManager/PortfolioApplicationTests.java
+- smokeTest() [L10]
+  Verifies test runtime works with a basic assertion.
+
+Asset service tests
+-------------------
+Class: FAMPortfolioManager/src/test/java/com/training/FAMPortfolioManager/service/AssetServiceTest.java
+- addAsset_createsAssetAndReturnsMappedResponse() [L50]
+  Verifies addAsset() maps/saves and computes response values.
+- updateAsset_whenPortfolioChanged_movesAssetToNewPortfolio() [L72]
+  Verifies updateAsset() updates fields and portfolio assignment.
+- getAssetById_whenMissing_throws() [L99]
+  Verifies missing asset throws RuntimeException with "Asset not found".
+- deleteAsset_whenFound_deletes() [L106]
+  Verifies repository delete is called for found asset.
+
+Portfolio service tests
+-----------------------
+Class: FAMPortfolioManager/src/test/java/com/training/FAMPortfolioManager/service/PortfolioServiceTest.java
+- addPortfolio_savesAndMapsResponse() [L44]
+  Verifies addPortfolio() save + DTO mapping.
+- updatePortfolio_updatesExisting() [L61]
+  Verifies updatePortfolio() updates name/description.
+- deletePortfolio_whenExists_deletes() [L77]
+  Verifies repository delete is called.
+- getOverallPerformance_groupsUniqueTickersAndBuildsSeries() [L88]
+  Verifies overall monthly series generation, ticker normalization, and series hydration call count.
+
+Asset controller tests
+----------------------
+Class: FAMPortfolioManager/src/test/java/com/training/FAMPortfolioManager/controller/AssetControllerTest.java
+- createAsset_returnsCreatedStatus() [L36]
+  Verifies create endpoint returns 201 and created body id.
+- getAssetPerformance_returnsSeries() [L50]
+  Verifies performance endpoint returns 200 with data.
+- deleteAsset_returnsNoContent() [L60]
+  Verifies delete endpoint calls service and returns 204.
+
+Portfolio controller tests
+--------------------------
+Class: FAMPortfolioManager/src/test/java/com/training/FAMPortfolioManager/controller/PortfolioControllerTest.java
+- getAllPortfolios_returnsOk() [L35]
+  Verifies list endpoint returns 200 with data.
+- getOverallPerformance_returnsData() [L45]
+  Verifies overall performance endpoint returns 200 with data.
+- deletePortfolio_returnsNoContent() [L55]
+  Verifies delete endpoint calls service and returns 204.
+
+Global exception handler tests
+------------------------------
+Class: FAMPortfolioManager/src/test/java/com/training/FAMPortfolioManager/exception/GlobalExceptionHandlerTest.java
+- handleGlobalException_returns500Payload() [L28]
+  Verifies global exception handler returns 500 payload with expected fields.
+
+Inactive (commented out, does not run):
+- handleAssetNotFound_returns404Payload() [L16]
+
+Latest test run status: EXIT:0
