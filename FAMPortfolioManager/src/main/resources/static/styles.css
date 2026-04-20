@@ -32,9 +32,23 @@ body {
   padding: 1.5rem 1rem;
 }
 
+.sidebar-brand {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+}
+
+.brand-logo {
+  width: min(100%, 220px);
+  aspect-ratio: 1569 / 657;
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent url("Logo.png.png") center / contain no-repeat;
+}
+
 .sidebar h1 {
   font-size: 1.3rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 nav {
@@ -427,6 +441,10 @@ td:last-child {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+
+  .brand-logo {
+    width: min(100%, 280px);
   }
 
   .chart-grid,
