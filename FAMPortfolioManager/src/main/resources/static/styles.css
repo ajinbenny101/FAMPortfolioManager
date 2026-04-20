@@ -116,6 +116,11 @@ nav {
   line-height: 1.35;
 }
 
+/* Dashboard overall view: hide portfolio selector label text */
+.content.dashboard-mode-overall .topbar label[for="portfolioSelect"] {
+  display: none;
+}
+
 .topbar {
   background: var(--card);
   border: 1px solid var(--border);
