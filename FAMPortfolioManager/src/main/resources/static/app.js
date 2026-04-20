@@ -230,7 +230,7 @@ function renderOverallPerformanceChart() {
       labels: portfolios.map(p => p.name),
       datasets: [{
         data: chartData,
-        backgroundColor: ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0"],
+        backgroundColor: ["#4E79A7", "#59A14F", "#F28E2B", "#B07AA1", "#E15759", "#76B7B2"],
         borderWidth: 2,
         borderColor: "#fff"
       }]
@@ -273,7 +273,7 @@ function renderIndividualPerformanceChart(portfolioId) {
       labels: labels,
       datasets: [{
         data: chartData,
-        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
+        backgroundColor: ["#4E79A7", "#59A14F", "#F28E2B", "#B07AA1", "#E15759", "#76B7B2"],
         borderWidth: 2,
         borderColor: "#fff"
       }]
@@ -385,7 +385,7 @@ function renderPerformanceTrendChart(datasets) {
     trendChart.destroy();
   }
 
-  const colors = ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0"];
+  const colors = ["#4E79A7", "#59A14F", "#F28E2B", "#B07AA1", "#E15759", "#76B7B2"];
   
   const chartDatasets = datasets.map((dataset, index) => ({
     label: dataset.label,
@@ -437,6 +437,12 @@ function renderPerformanceTrendChart(datasets) {
 // charts, totals, and selected portfolio summary.
 async function switchViewMode(mode) {
   currentViewMode = mode;
+
+  const contentEl = document.querySelector("main.content");
+  if (contentEl) {
+    contentEl.classList.remove("dashboard-mode-overall", "dashboard-mode-individual");
+    contentEl.classList.add(mode === "overall" ? "dashboard-mode-overall" : "dashboard-mode-individual");
+  }
 
   if (mode === "overall") {
     overallViewBtn.classList.add("active");

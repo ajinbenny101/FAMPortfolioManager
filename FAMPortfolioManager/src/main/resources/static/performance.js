@@ -14,8 +14,8 @@
 // ── Constants ─────────────────────────────────────────────────────────────
 // Stable palette reused for chart datasets and custom legend chips.
 const CHART_COLORS = [
-  "#2b78e4", "#0a8f4e", "#e67e22", "#9b59b6",
-  "#e74c3c", "#1abc9c", "#f39c12", "#2980b9"
+  "#4E79A7", "#59A14F", "#F28E2B", "#B07AA1",
+  "#E15759", "#76B7B2", "#EDC948", "#9C755F"
 ];
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
