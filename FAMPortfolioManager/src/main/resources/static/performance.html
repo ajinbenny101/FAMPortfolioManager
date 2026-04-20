@@ -34,6 +34,16 @@
         <div class="perf-header-meta">
           <span class="perf-meta-label">Last updated</span>
           <span class="perf-meta-value" id="lastUpdated">—</span>
+
+          <div class="perf-download" id="perfDownloadWrap">
+            <button type="button" class="perf-download-btn" id="perfDownloadBtn" aria-haspopup="true" aria-expanded="false">
+              Downloads ▾
+            </button>
+            <div class="perf-download-menu" id="perfDownloadMenu" role="menu" aria-label="Export options">
+              <button type="button" role="menuitem" id="downloadCsvBtn">Export CSV</button>
+              <button type="button" role="menuitem" id="downloadPdfBtn">Export PDF</button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -118,6 +128,7 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="performance.js"></script>
 </body>
 </html>

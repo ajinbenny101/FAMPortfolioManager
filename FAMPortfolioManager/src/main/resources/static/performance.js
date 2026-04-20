@@ -33,6 +33,11 @@ const stockSelectEl   = document.getElementById("perfStockSelect");
 const rangeSelectEl   = document.getElementById("perfRangeSelect");
 const legendEl        = document.getElementById("perfChartLegend");
 const lastUpdatedEl   = document.getElementById("lastUpdated");
+const downloadWrapEl  = document.getElementById("perfDownloadWrap");
+const downloadBtnEl   = document.getElementById("perfDownloadBtn");
+const downloadMenuEl  = document.getElementById("perfDownloadMenu");
+const downloadCsvBtn  = document.getElementById("downloadCsvBtn");
+const downloadPdfBtn  = document.getElementById("downloadPdfBtn");
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function fmt(v) {
@@ -41,6 +46,30 @@ function fmt(v) {
 
 function fmtPct(v) {
   return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+}
+
+function slugify(value) {
+  return String(value || "portfolio")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function csvCell(value) {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadTextFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // Apply positive/negative semantic coloring to KPI values.
@@ -117,6 +146,216 @@ function getBestWorst(assets) {
     return plb - pla;
   });
   return { best: sorted[0], worst: sorted[sorted.length - 1] };
+}
+
+// Build simple decision alerts for the selected portfolio.
+function buildPortfolioAlerts(portfolio, assets) {
+  const alerts = [];
+  if (!portfolio) return alerts;
+
+  if (!assets.length) {
+    alerts.push({ severity: "warning", message: `${portfolio.name} has no holdings yet.` });
+    return alerts;
+  }
+
+  const { totalValue, totalCost, totalPL, returnPct } = computeSummary(assets);
+  if (returnPct <= -15) {
+    alerts.push({ severity: "danger", message: `${portfolio.name} is down ${returnPct.toFixed(1)}% (${fmt(totalPL)}).` });
+  } else if (returnPct < -5) {
+    alerts.push({ severity: "warning", message: `${portfolio.name} is down ${returnPct.toFixed(1)}%.` });
+  } else if (returnPct >= 10) {
+    alerts.push({ severity: "success", message: `${portfolio.name} is up ${returnPct.toFixed(1)}%.` });
+  }
+
+  const dominant = assets
+    .map(a => ({ ...a, weight: totalValue > 0 ? (a.marketValue / totalValue) * 100 : 0 }))
+    .sort((a, b) => b.weight - a.weight)[0];
+  if (dominant && dominant.weight >= 50) {
+    alerts.push({
+      severity: "warning",
+      message: `Concentration risk: ${dominant.ticker} is ${dominant.weight.toFixed(1)}% of ${portfolio.name}.`
+    });
+  }
+
+  const losers = assets.filter(a => {
+    const cost = a.quantity * a.purchasePrice;
+    const pct = cost > 0 ? ((a.marketValue - cost) / cost) * 100 : 0;
+    return pct <= -10;
+  });
+  losers.slice(0, 3).forEach(a => {
+    const cost = a.quantity * a.purchasePrice;
+    const pct = cost > 0 ? ((a.marketValue - cost) / cost) * 100 : 0;
+    alerts.push({ severity: "danger", message: `${a.ticker} is down ${pct.toFixed(1)}% (${fmt(a.marketValue - cost)}).` });
+  });
+
+  const { best, worst } = getBestWorst(assets);
+  if (best) {
+    const bestCost = best.quantity * best.purchasePrice;
+    const bestPct = bestCost > 0 ? ((best.marketValue - bestCost) / bestCost) * 100 : 0;
+    alerts.push({ severity: "info", message: `Best performer: ${best.ticker} (${fmtPct(bestPct)}).` });
+  }
+  if (worst) {
+    const worstCost = worst.quantity * worst.purchasePrice;
+    const worstPct = worstCost > 0 ? ((worst.marketValue - worstCost) / worstCost) * 100 : 0;
+    alerts.push({ severity: "info", message: `Weakest performer: ${worst.ticker} (${fmtPct(worstPct)}).` });
+  }
+
+  return alerts;
+}
+
+function getActivePortfolioContext() {
+  const portfolio = pPortfolios.find(p => String(p.id) === String(pActivePortfolioId));
+  const assets = [...pActiveAssets];
+  const summary = computeSummary(assets);
+  const alerts = buildPortfolioAlerts(portfolio, assets);
+  return { portfolio, assets, summary, alerts };
+}
+
+function exportPortfolioCsv() {
+  const { portfolio, assets, summary, alerts } = getActivePortfolioContext();
+  if (!portfolio) return;
+
+  const rows = [];
+  rows.push(["Portfolio Performance Report", portfolio.name]);
+  rows.push(["Generated At", new Date().toLocaleString("en-US")]);
+  rows.push([]);
+  rows.push(["Summary"]);
+  rows.push(["Total Value", summary.totalValue.toFixed(2)]);
+  rows.push(["Cost Basis", summary.totalCost.toFixed(2)]);
+  rows.push(["Profit / Loss", summary.totalPL.toFixed(2)]);
+  rows.push(["Return %", summary.returnPct.toFixed(2)]);
+  rows.push([]);
+  rows.push(["Alerts"]);
+  rows.push(["Severity", "Message"]);
+  alerts.forEach(a => rows.push([a.severity, a.message]));
+  rows.push([]);
+  rows.push(["Holdings"]);
+  rows.push(["Ticker", "Company", "Quantity", "Purchase Price", "Current Price", "Market Value", "Profit/Loss", "Return %"]);
+
+  assets.forEach(a => {
+    const cost = a.quantity * a.purchasePrice;
+    const pl = a.marketValue - cost;
+    const ret = cost > 0 ? (pl / cost) * 100 : 0;
+    rows.push([
+      a.ticker,
+      a.companyName,
+      Number(a.quantity).toFixed(4),
+      Number(a.purchasePrice).toFixed(2),
+      Number(a.currentPrice).toFixed(2),
+      Number(a.marketValue).toFixed(2),
+      Number(pl).toFixed(2),
+      Number(ret).toFixed(2)
+    ]);
+  });
+
+  const csv = rows.map(r => r.map(csvCell).join(",")).join("\n");
+  const fileName = `${slugify(portfolio.name)}-performance-report.csv`;
+  downloadTextFile(fileName, csv, "text/csv;charset=utf-8;");
+}
+
+function exportPortfolioPdf() {
+  const { portfolio, assets, summary, alerts } = getActivePortfolioContext();
+  if (!portfolio) return;
+
+  const jsPDFCtor = window.jspdf?.jsPDF;
+  if (!jsPDFCtor) {
+    alert("PDF library is not available right now. Please try CSV export.");
+    return;
+  }
+
+  const doc = new jsPDFCtor({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 40;
+  let y = 44;
+
+  const line = (text, size = 10, spacing = 14) => {
+    doc.setFontSize(size);
+    const parts = doc.splitTextToSize(String(text), pageW - margin * 2);
+    parts.forEach(p => {
+      if (y > 800) {
+        doc.addPage();
+        y = 44;
+      }
+      doc.text(p, margin, y);
+      y += spacing;
+    });
+  };
+
+  doc.setFont("helvetica", "bold");
+  line(`Portfolio Performance Report — ${portfolio.name}`, 14, 18);
+  doc.setFont("helvetica", "normal");
+  line(`Generated: ${new Date().toLocaleString("en-US")}`, 10, 14);
+  y += 6;
+
+  doc.setFont("helvetica", "bold");
+  line("Summary", 12, 16);
+  doc.setFont("helvetica", "normal");
+  line(`Total Value: ${fmt(summary.totalValue)}`);
+  line(`Cost Basis: ${fmt(summary.totalCost)}`);
+  line(`Profit/Loss: ${fmt(summary.totalPL)}`);
+  line(`Return: ${fmtPct(summary.returnPct)}`);
+  y += 6;
+
+  doc.setFont("helvetica", "bold");
+  line("Alerts", 12, 16);
+  doc.setFont("helvetica", "normal");
+  if (!alerts.length) {
+    line("- None");
+  } else {
+    alerts.forEach(a => line(`- [${a.severity.toUpperCase()}] ${a.message}`));
+  }
+  y += 6;
+
+  doc.setFont("helvetica", "bold");
+  line("Holdings", 12, 16);
+  doc.setFont("helvetica", "normal");
+  assets.forEach(a => {
+    const cost = a.quantity * a.purchasePrice;
+    const pl = a.marketValue - cost;
+    const ret = cost > 0 ? (pl / cost) * 100 : 0;
+    line(`${a.ticker} (${a.companyName})`, 10, 13);
+    line(`  Qty ${Number(a.quantity).toFixed(4)} | Cost ${fmt(a.purchasePrice)} | Current ${fmt(a.currentPrice)} | Value ${fmt(a.marketValue)} | P/L ${fmt(pl)} | Return ${fmtPct(ret)}`, 9, 12);
+  });
+
+  const fileName = `${slugify(portfolio.name)}-performance-report.pdf`;
+  doc.save(fileName);
+}
+
+function closeDownloadMenu() {
+  if (!downloadMenuEl || !downloadBtnEl) return;
+  downloadMenuEl.classList.remove("open");
+  downloadBtnEl.setAttribute("aria-expanded", "false");
+}
+
+function setupDownloadMenu() {
+  if (!downloadBtnEl || !downloadMenuEl || !downloadCsvBtn || !downloadPdfBtn) return;
+
+  downloadBtnEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const opening = !downloadMenuEl.classList.contains("open");
+    downloadMenuEl.classList.toggle("open", opening);
+    downloadBtnEl.setAttribute("aria-expanded", String(opening));
+  });
+
+  downloadCsvBtn.addEventListener("click", () => {
+    closeDownloadMenu();
+    exportPortfolioCsv();
+  });
+
+  downloadPdfBtn.addEventListener("click", () => {
+    closeDownloadMenu();
+    exportPortfolioPdf();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!downloadWrapEl?.contains(e.target)) {
+      closeDownloadMenu();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDownloadMenu();
+  });
 }
 
 // ── Render portfolio strip ────────────────────────────────────────────────
@@ -436,6 +675,8 @@ rangeSelectEl.addEventListener("change", async () => {
 
 // ── Init ──────────────────────────────────────────────────────────────────
 async function perfInit() {
+  setupDownloadMenu();
+
   // Set last-updated timestamp
   lastUpdatedEl.textContent = now().toLocaleString("en-US", {
     month: "short", day: "numeric", year: "numeric",
