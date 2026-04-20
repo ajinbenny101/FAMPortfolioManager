@@ -425,7 +425,7 @@ async function switchViewMode(mode) {
   if (mode === "overall") {
     overallViewBtn.classList.add("active");
     individualViewBtn.classList.remove("active");
-    chartTitleEl.textContent = "Portfolio Distribution";
+    chartTitleEl.textContent = "Distribution of Assets by Portfolio";
     selectEl.style.display = "none";
     document.getElementById("portfolioSummary").style.display = "none";
     renderOverallPerformanceChart();

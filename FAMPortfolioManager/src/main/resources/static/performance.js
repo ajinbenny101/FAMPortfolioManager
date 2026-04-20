@@ -400,7 +400,7 @@ async function renderPortfolioStrip() {
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `Select ${portfolio.name} portfolio`);
     card.innerHTML = `
-      <div class="ppc__label">${portfolio.name}</div>
+      <div class="ppc__label">${portfolio.name} </div>
       <div class="ppc__value">${fmt(totalValue)}</div>
       <div class="ppc__meta-row">
         <span class="ppc__pl ${totalPL >= 0 ? "positive" : "negative"}">
@@ -415,7 +415,7 @@ async function renderPortfolioStrip() {
 
       <!-- Hover stock list -->
       <div class="stock-hover-list" role="tooltip">
-        <div class="stock-hover-list__title">Holdings in ${portfolio.name}</div>
+        <div class="stock-hover-list__title">Holdings in ${portfolio.name} Portfolio</div>
         ${stockRows || '<div class="stock-hover-list__row" style="color:var(--muted);font-style:italic">No holdings</div>'}
       </div>
     `;
@@ -444,7 +444,7 @@ function renderStatsPanel(portfolio, assets) {
   const { best, worst } = getBestWorst(assets);
 
   // KPI cards are all derived from backend-provided asset snapshots.
-  selectedNameEl.textContent = portfolio.name;
+  selectedNameEl.textContent = `${portfolio.name} Portfolio`;
   stockCountEl.textContent   = `${assets.length} stock${assets.length !== 1 ? "s" : ""}`;
 
   kpiTotalVal.textContent  = fmt(totalValue);
@@ -658,7 +658,7 @@ async function selectPortfolio(id) {
   // Update chart title to show active portfolio name
   const chartTitle = document.querySelector(".perf-chart-title");
   if (chartTitle && portfolio) {
-    chartTitle.textContent = `Stock Performance Over Time for ${portfolio.name}`;
+    chartTitle.textContent = `Stock Performance Over Time for ${portfolio.name} Portfolio`;
   }
   
   await renderChart(assets, rangeSelectEl.value);
