@@ -1,15 +1,7 @@
-/* ============================================================
-   performance.js — Performance page logic
-  Depends on: app.js (for apiGet, formatCurrency)
-
-  Backend integration in this page:
-  - GET /api/portfolios
-  - GET /api/assets?portfolioId={id}
-
-  Primary goal:
-  Translate backend portfolio/asset snapshots into decision-friendly KPI
-  cards and interactive performance trend charts.
-   ============================================================ */
+/*
+  Performance page logic.
+  Loads portfolios + assets, then renders KPI cards and stock trend charts.
+*/
 
 // ── Constants ─────────────────────────────────────────────────────────────
 // Stable palette reused for chart datasets and custom legend chips.
@@ -17,9 +9,6 @@ const CHART_COLORS = [
   "#4E79A7", "#59A14F", "#F28E2B", "#B07AA1",
   "#E15759", "#76B7B2", "#EDC948", "#9C755F"
 ];
-
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ── State ─────────────────────────────────────────────────────────────────
 // Runtime state for selected portfolio, loaded holdings and chart instance.

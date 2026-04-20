@@ -1,30 +1,16 @@
-/* ============================================================
-   holdings.js — Holdings page logic
-  Depends on: app.js (for apiGet/apiPost/apiPut/apiDelete, formatCurrency)
+/*
+  Holdings page logic.
+  Keeps the holdings table, filters, and CRUD modals in sync with backend data.
+*/
 
-  Backend integration in this page:
-  - GET    /api/portfolios
-  - GET    /api/assets?portfolioId={id}
-  - POST   /api/assets
-  - PUT    /api/assets/{id}
-  - DELETE /api/assets/{id}
-  - POST   /api/portfolios
-  - PUT    /api/portfolios/{id}
-  - DELETE /api/portfolios/{id}
-
-  Primary goal:
-  Keep holdings management (browse/filter/select + CRUD) synchronized with
-  backend data while maintaining immediate UI feedback.
-   ============================================================ */
-
-// ── State ──────────────────────────────────────────────────────────────────
+// State
 let hPortfolios = [];           // all portfolios
 let hAllAssets = [];            // all assets for active portfolio (raw)
 let hFilteredAssets = [];       // after search/filter
 let hActivePortfolioId = null;  // currently selected portfolio id
 let hSelectedAssetIds = new Set();
 
-// ── DOM refs ───────────────────────────────────────────────────────────────
+// DOM refs
 const portfolioStripEl    = document.getElementById("portfolioStrip");
 const holdingsBodyEl      = document.getElementById("holdingsBody");
 const holdingsCountEl     = document.getElementById("holdingsCount");
@@ -37,18 +23,14 @@ const clearFiltersEl      = document.getElementById("clearFiltersBtn");
 const selectAllEl         = document.getElementById("selectAllCheckbox");
 const selectionSummaryEl  = document.getElementById("selectionSummary");
 const emptyStateEl        = document.getElementById("emptyState");
-const addPortfolioTopBtn  = document.getElementById("btnAddPortfolioTop");
-const addPortfolioBtn     = document.getElementById("btnAddPortfolio");
-const updatePortfolioBtn  = document.getElementById("btnUpdatePortfolio");
-const removePortfolioBtn  = document.getElementById("btnRemovePortfolio");
 
-// ── Utilities ──────────────────────────────────────────────────────────────
+// Utilities
 function setHoldingsStatus(msg, isError = false) {
   holdingsStatusEl.textContent = msg;
   holdingsStatusEl.style.color = isError ? "#c62828" : "";
 }
 
-// Summarize a set of assets for card/header style displays.
+// Summarize asset totals for strip cards.
 function computeAssetSummary(assets) {
   return assets.reduce((acc, a) => {
     const mv = Number(a.marketValue ?? a.quantity * a.currentPrice);
@@ -60,19 +42,19 @@ function computeAssetSummary(assets) {
   }, { totalValue: 0, totalCost: 0, totalPL: 0 });
 }
 
-// Render purchase date safely for table display.
+// Format purchase date safely for table display.
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   return isNaN(d) ? dateStr : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-// ── Portfolio strip ────────────────────────────────────────────────────────
+// Portfolio strip
 async function loadAllPortfolioSummaries() {
   portfolioStripEl.innerHTML = "";
 
   for (const portfolio of hPortfolios) {
-    // Pull holdings per portfolio so each card reflects live backend totals.
+    // Pull holdings per portfolio so each card shows current totals.
     let assets = [];
     try {
       assets = await apiGet(`/api/assets?portfolioId=${portfolio.id}`);
@@ -120,7 +102,7 @@ function updateStripActiveState() {
   });
 }
 
-// ── Holdings table ─────────────────────────────────────────────────────────
+// Holdings table
 function applyFiltersAndRender() {
   const query   = searchInputEl.value.trim().toLowerCase();
   const sort    = sortSelectEl.value;
@@ -129,7 +111,7 @@ function applyFiltersAndRender() {
 
   let assets = [...hAllAssets];
 
-  // Text search across ticker/company (client-side; no backend roundtrip).
+  // Client-side text search
   if (query) {
     assets = assets.filter(a =>
       a.ticker.toLowerCase().includes(query) ||
@@ -137,7 +119,7 @@ function applyFiltersAndRender() {
     );
   }
 
-  // Profit/loss polarity filter.
+  // P/L polarity filter
   if (plFilt === "positive") {
     assets = assets.filter(a => {
       const pl = Number(a.profitLoss ?? (a.quantity * a.currentPrice) - (a.quantity * a.purchasePrice));
@@ -150,7 +132,7 @@ function applyFiltersAndRender() {
     });
   }
 
-  // Minimum market value threshold.
+  // Minimum market value filter
   if (minVal > 0) {
     assets = assets.filter(a => {
       const mv = Number(a.marketValue ?? a.quantity * a.currentPrice);
@@ -158,7 +140,7 @@ function applyFiltersAndRender() {
     });
   }
 
-  // Client-side sort for currently loaded holdings.
+  // Client-side sort
   assets.sort((a, b) => {
     switch (sort) {
       case "ticker":      return a.ticker.localeCompare(b.ticker);
@@ -189,7 +171,7 @@ function renderHoldingsTableH(assets) {
   holdingsBodyEl.innerHTML = "";
   holdingsCountEl.textContent = assets.length;
 
-  // Empty-state handling when filters hide all rows or portfolio has no assets.
+  // Empty state
   if (!assets.length) {
     emptyStateEl.style.display = "block";
     selectAllEl.checked = false;
@@ -220,7 +202,7 @@ function renderHoldingsTableH(assets) {
       <td class="${pl >= 0 ? "pl-positive" : "pl-negative"}">${pl >= 0 ? "+" : ""}${formatCurrency(pl)}</td>
     `;
 
-    // Row-level selection drives bulk operations (delete) and single-update flow.
+    // Row selection drives update/delete actions.
     const checkbox = tr.querySelector("input[type='checkbox']");
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
@@ -256,7 +238,7 @@ function updateSelectAllState() {
   }
 }
 
-// Selection summary helps user validate action scope before update/delete.
+// Selection summary for bulk actions.
 function updateSelectionSummary() {
   const count = hSelectedAssetIds.size;
   if (count === 0) {
@@ -273,7 +255,7 @@ function updateSelectionSummary() {
   }
 }
 
-// ── Portfolio switching ────────────────────────────────────────────────────
+// Portfolio switching
 async function switchPortfolio(portfolioId) {
   hActivePortfolioId = portfolioId;
   hSelectedAssetIds.clear();
@@ -287,7 +269,7 @@ async function switchPortfolio(portfolioId) {
   }
 
   try {
-    // Core holdings fetch endpoint for the active portfolio.
+    // Load active portfolio holdings
     const assets = await apiGet(`/api/assets?portfolioId=${portfolioId}`);
     hAllAssets = assets;
     setHoldingsStatus(`${assets.length} holding${assets.length !== 1 ? "s" : ""} loaded.`);
@@ -299,7 +281,7 @@ async function switchPortfolio(portfolioId) {
   applyFiltersAndRender();
 }
 
-// ── Modal helpers ──────────────────────────────────────────────────────────
+// Modal helpers
 function openModal(id) {
   document.getElementById(id).classList.add("open");
 }
@@ -367,7 +349,7 @@ function openRemovePortfolioModal(portfolioId) {
   openModal("modalRemovePortfolio");
 }
 
-// ── CRUD handlers (backend-backed workflows) ───────────────────────────────
+// CRUD handlers
 
 portfolioStripEl.addEventListener("click", (event) => {
   const actionBtn = event.target.closest(".portfolio-card__action");
@@ -413,7 +395,7 @@ document.getElementById("btnConfirmAddStock").addEventListener("click", async ()
     return;
   }
 
-  // Matches backend AssetRequestDto shape.
+  // Matches backend AssetRequestDto
   const payload = {
     ticker,
     companyName: company,
@@ -431,7 +413,7 @@ document.getElementById("btnConfirmAddStock").addEventListener("click", async ()
   }
 
   closeModal("modalAddStock");
-  // Refresh current table when we add into the currently visible portfolio.
+  // Refresh table if we added to the currently visible portfolio
   if (String(portfolioId) === String(hActivePortfolioId)) {
     await switchPortfolio(hActivePortfolioId);
   }
@@ -458,7 +440,6 @@ document.getElementById("btnUpdateStock").addEventListener("click", () => {
   document.getElementById("updateCompanyName").value = asset.companyName;
   document.getElementById("updateQuantity").value = asset.quantity;
   document.getElementById("updatePurchasePrice").value = asset.purchasePrice;
-  document.getElementById("updateCurrentPrice").value = asset.currentPrice;
   document.getElementById("updateDatePurchased").value = (asset.datePurchased || "").toString().slice(0, 10);
   openModal("modalUpdateStock");
 });
@@ -477,7 +458,7 @@ document.getElementById("btnConfirmUpdateStock").addEventListener("click", async
     return;
   }
 
-  // PUT contract also carries portfolioId so backend can validate ownership.
+  // Send portfolioId so backend can validate ownership.
   const payload = {
     ticker,
     companyName: company,
@@ -538,22 +519,13 @@ document.getElementById("btnConfirmRemoveStock").addEventListener("click", async
   await loadAllPortfolioSummaries();
 });
 
-// Add portfolio
-if (addPortfolioTopBtn) {
-  addPortfolioTopBtn.addEventListener("click", openAddPortfolioModal);
-}
-
-if (addPortfolioBtn) {
-  addPortfolioBtn.addEventListener("click", openAddPortfolioModal);
-}
-
 document.getElementById("btnConfirmAddPortfolio").addEventListener("click", async () => {
   clearError("addPortfolioError");
   const name = document.getElementById("addPortfolioName").value.trim();
   if (!name) { showError("addPortfolioError", "Portfolio name is required."); return; }
 
   try {
-    // Description is optional in current UI; keep payload explicit.
+    // Description is optional in current UI.
     const created = await apiPost("/api/portfolios", { name, description: "" });
     hPortfolios.push(created);
   } catch (err) {
@@ -566,20 +538,13 @@ document.getElementById("btnConfirmAddPortfolio").addEventListener("click", asyn
   await loadAllPortfolioSummaries();
 });
 
-// Update portfolio
-if (updatePortfolioBtn) {
-  updatePortfolioBtn.addEventListener("click", () => {
-    openUpdatePortfolioModal(Number(hActivePortfolioId));
-  });
-}
-
 document.getElementById("btnConfirmUpdatePortfolio").addEventListener("click", async () => {
   clearError("updatePortfolioError");
   const id   = parseInt(document.getElementById("updatePortfolioSelect").value, 10);
   const name = document.getElementById("updatePortfolioName").value.trim();
   if (!name) { showError("updatePortfolioError", "New name is required."); return; }
 
-  // Preserve existing description if UI only edits the portfolio name.
+  // Keep existing description (UI edits name only).
   const existing = hPortfolios.find(x => x.id === id);
   const description = existing?.description ?? "";
 
@@ -598,13 +563,6 @@ document.getElementById("btnConfirmUpdatePortfolio").addEventListener("click", a
   await loadAllPortfolioSummaries();
 });
 
-// Remove portfolio
-if (removePortfolioBtn) {
-  removePortfolioBtn.addEventListener("click", () => {
-    openRemovePortfolioModal(Number(hActivePortfolioId));
-  });
-}
-
 document.getElementById("btnConfirmRemovePortfolio").addEventListener("click", async () => {
   clearError("removePortfolioError");
   const id = parseInt(document.getElementById("removePortfolioSelect").value, 10);
@@ -618,7 +576,7 @@ document.getElementById("btnConfirmRemovePortfolio").addEventListener("click", a
 
   hPortfolios = hPortfolios.filter(p => p.id !== id);
 
-  // If the active portfolio was removed, gracefully fallback to first remaining.
+  // If active portfolio was removed, fallback to the first remaining one.
   if (String(hActivePortfolioId) === String(id)) {
     hActivePortfolioId = hPortfolios[0]?.id ?? null;
   }
@@ -628,7 +586,7 @@ document.getElementById("btnConfirmRemovePortfolio").addEventListener("click", a
   if (hActivePortfolioId) await switchPortfolio(hActivePortfolioId);
 });
 
-// ── Close modal handlers ───────────────────────────────────────────────────
+// Close modal handlers
 document.querySelectorAll("[data-close]").forEach(btn => {
   btn.addEventListener("click", () => closeModal(btn.dataset.close));
 });
@@ -645,8 +603,7 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// ── Select all checkbox ────────────────────────────────────────────────────
-// Bulk toggle only affects currently visible (filtered) holdings.
+// Select-all checkbox (affects only currently filtered rows)
 selectAllEl.addEventListener("change", () => {
   if (selectAllEl.checked) {
     hFilteredAssets.forEach(a => hSelectedAssetIds.add(a.id));
@@ -656,7 +613,7 @@ selectAllEl.addEventListener("change", () => {
   renderHoldingsTableH(hFilteredAssets);
 });
 
-// ── Filter event listeners ─────────────────────────────────────────────────
+// Filter listeners
 searchInputEl.addEventListener("input", applyFiltersAndRender);
 sortSelectEl.addEventListener("change", applyFiltersAndRender);
 plFilterEl.addEventListener("change", applyFiltersAndRender);
@@ -670,7 +627,7 @@ clearFiltersEl.addEventListener("click", () => {
   applyFiltersAndRender();
 });
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// Init
 async function holdingsInit() {
   setHoldingsStatus("Loading portfolios…");
 
@@ -690,11 +647,10 @@ async function holdingsInit() {
 
   hActivePortfolioId = hPortfolios[0].id;
 
-  // Load portfolio strip (summary cards) — async, non-blocking.
-  // We intentionally do not await to keep first holdings table responsive.
+  // Load strip cards in parallel (non-blocking).
   loadAllPortfolioSummaries();
 
-  // Load first portfolio's holdings
+  // Load first portfolio holdings
   await switchPortfolio(hActivePortfolioId);
 }
 
