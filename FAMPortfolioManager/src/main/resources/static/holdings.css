@@ -51,8 +51,8 @@
 }
 
 .portfolio-card.active {
-  border-color: rgb(9, 157, 216);
-  box-shadow: 0 0 0 5px rgba(9, 157, 216, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 5px rgba(var(--primary-rgb), 0.18);
 }
 
 .portfolio-card__name {
@@ -122,7 +122,7 @@
 .portfolio-card__action:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: #f0f5ff;
+  background: var(--primary-soft);
 }
 
 .portfolio-card__action--danger:hover {
@@ -251,7 +251,7 @@
 }
 
 .holdings-count {
-  background: #eef2f9;
+  background: var(--surface-alt);
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -281,11 +281,11 @@
 }
 
 #holdingsTable tr.row-selected {
-  background: #eef4ff;
+  background: #e7f3f9;
 }
 
 #holdingsTable tr:hover {
-  background: #f5f8ff;
+  background: #f0f8fc;
 }
 
 #holdingsTable input[type="checkbox"] {
@@ -347,7 +347,7 @@
 .panel-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: #f0f5ff;
+  background: var(--primary-soft);
 }
 
 .panel-btn--danger {
@@ -604,10 +604,124 @@
     margin-bottom: 0;
   }
   .panel-btn { width: auto; }
+
+  .status-msg {
+    margin-left: 0;
+    width: 100%;
+    align-self: flex-start;
+  }
+
+  /* Mobile column priority collapse (1st: Date Purchased) */
+  #holdingsTable th:nth-child(8),
+  #holdingsTable td:nth-child(8) {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* 2nd: Market Value */
+  #holdingsTable th:nth-child(7),
+  #holdingsTable td:nth-child(7) {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
+  .holdings-content {
+    gap: 0.75rem;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-group select,
+  .filter-group input[type="number"],
+  .btn-ghost {
+    width: 100%;
+  }
+
+  .table-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .table-header-row h2 {
+    font-size: 0.98rem;
+    line-height: 1.3;
+    flex-wrap: wrap;
+  }
+
+  #holdingsTable th,
+  #holdingsTable td {
+    font-size: 0.82rem;
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* 3rd: Number of Shares */
+  #holdingsTable th:nth-child(4),
+  #holdingsTable td:nth-child(4) {
+    display: none;
+  }
+
+  .modal {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0.5rem;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modal-footer .btn-ghost,
+  .modal-footer .btn-primary,
+  .modal-footer .btn-danger {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  /* 4th: Cost Basis */
+  #holdingsTable th:nth-child(6),
+  #holdingsTable td:nth-child(6) {
+    display: none;
+  }
+}
+
+@media (max-width: 500px) {
+  /* 5th: Stock Name (Company) */
+  #holdingsTable th:nth-child(3),
+  #holdingsTable td:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  /* Absolute minimum view: keep only Ticker + P/L */
+  #holdingsTable th:nth-child(1),
+  #holdingsTable td:nth-child(1),
+  #holdingsTable th:nth-child(5),
+  #holdingsTable td:nth-child(5) {
+    display: none;
+  }
+
+  .select-all-label {
+    display: none;
   }
 }
