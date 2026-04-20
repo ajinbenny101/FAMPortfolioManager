@@ -1,30 +1,8 @@
-/* ============================================================
-   alerts.js — Consolidated Portfolio Alert System
-   
-   HOW IT WORKS
-   ─────────────────────────────────────────────────────────────
-   After app.js has loaded all portfolio + asset data, this file:
-
-     1. Runs a set of plain if/else RULES against that data.
-     2. Builds an array of alert objects { type, label, message }.
-     3. Displays them in the #alertBanner carousel at the top of
-        the dashboard.
-
-   ALERT TYPES
-   ─────────────────────────────────────────────────────────────
-   This system generates:
-     • NEGATIVE WARNINGS (danger/warning): Portfolio losses, 
-       underperforming stocks, concentration risk, low diversification
-     • ONE TOP PERFORMER ALERT (success): The single best-performing
-       individual stock across all portfolios (if above threshold)
-     
-   No neutral/positive messages are generated (all-clear, portfolio gains, etc.)
-
-   Alert Types:
-     "warning"  → amber   (caution / worth watching)
-     "danger"   → red     (significant loss / action needed)
-     "success"  → green   (best performer / positive signal)
-   ============================================================ */
+/*
+  Dashboard alert engine.
+  Reads portfolio/asset data from app.js, evaluates simple rule-based alerts,
+  and rotates them in the top banner.
+*/
 
 // ── Thresholds — edit these to tune alert sensitivity ─────────────────────
 const ALERT_THRESHOLDS = {
@@ -40,7 +18,7 @@ function createAlert(type, label, message) {
   return { type, label, message };
 }
 
-// ── Core rule engine ───────────────────────────────────────────────────────
+// Rule engine: returns alert objects from current portfolio state.
 /**
  * Evaluates the current portfolio state and returns an array of alerts.
  * Only generates:
