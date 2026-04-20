@@ -610,6 +610,20 @@
     width: 100%;
     align-self: flex-start;
   }
+
+  /* Mobile column priority collapse (1st: Date Purchased) */
+  #holdingsTable th:nth-child(8),
+  #holdingsTable td:nth-child(8) {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* 2nd: Market Value */
+  #holdingsTable th:nth-child(7),
+  #holdingsTable td:nth-child(7) {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -652,6 +666,12 @@
     white-space: nowrap;
   }
 
+  /* 3rd: Number of Shares */
+  #holdingsTable th:nth-child(4),
+  #holdingsTable td:nth-child(4) {
+    display: none;
+  }
+
   .modal {
     width: calc(100vw - 1rem);
     max-width: calc(100vw - 1rem);
@@ -673,5 +693,35 @@
   .modal-footer .btn-primary,
   .modal-footer .btn-danger {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  /* 4th: Cost Basis */
+  #holdingsTable th:nth-child(6),
+  #holdingsTable td:nth-child(6) {
+    display: none;
+  }
+}
+
+@media (max-width: 500px) {
+  /* 5th: Stock Name (Company) */
+  #holdingsTable th:nth-child(3),
+  #holdingsTable td:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  /* Absolute minimum view: keep only Ticker + P/L */
+  #holdingsTable th:nth-child(1),
+  #holdingsTable td:nth-child(1),
+  #holdingsTable th:nth-child(5),
+  #holdingsTable td:nth-child(5) {
+    display: none;
+  }
+
+  .select-all-label {
+    display: none;
   }
 }
