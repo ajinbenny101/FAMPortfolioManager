@@ -16,9 +16,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableCaching
 
-// This is the configuration class for caching in the application. 
-// It sets up a CaffeineCacheManager with specific settings for caching stock prices.
-
+// Configures four Caffeine in-memory caches used by PriceService:
+//   stockPrices         - short-lived fresh prices (default 15 min) to avoid redundant API calls
+//   stockPricesFallback - long-lived stale prices (default 24 h) used as a backup when the API is down
+//   stockPriceFailures  - records failed API calls (default 15 min) so we don't retry them immediately
+//   stockHistoryFailures - records failed history fetches (default 30 min)
 public class CacheConfig {
 
     @Value("${pricing.cache.fresh-seconds:900}")

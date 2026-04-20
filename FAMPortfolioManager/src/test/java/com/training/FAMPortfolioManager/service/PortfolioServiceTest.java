@@ -25,6 +25,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+// Unit tests for PortfolioService.
+// Repository and PriceService dependencies are mocked via Mockito so tests run
+// without a database or external API.
 @ExtendWith(MockitoExtension.class)
 class PortfolioServiceTest {
 

@@ -16,6 +16,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+// Stores one closing price per ticker per calendar month, fetched from Twelve Data.
+// The unique constraint on (ticker, price_date) prevents duplicate entries.
+// Used by PriceService to build the historical performance charts without re-fetching from the API.
 @Entity
 @Table(
         name = "asset_monthly_prices",

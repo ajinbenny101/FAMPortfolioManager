@@ -9,23 +9,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-// WebConfig - CORS and Web Configuration
-// Annotate with @Configuration
-// Implement WebMvcConfigurer
-// Override addCorsMappings() to allow requests from http://localhost:3000 (or wherever frontend runs)
-//
-// IMPORTS NEEDED:
-// import org.springframework.context.annotation.Configuration;
-// import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-// import org.springframework.web.servlet.config.annotation.CorsRegistry;
-
-// This configuration class sets up CORS to allow cross-origin requests from the frontend application
-// and also defines a RestTemplate bean for making HTTP requests to external APIs.
-
+// Web configuration: CORS rules and the RestTemplate used by PriceService.
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    // Configure CORS to allow requests from the frontend application
+    // Allow the frontend (running on any localhost port) to call the /api/** endpoints
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
@@ -34,7 +22,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
-    // RestTemplate bean for making HTTP requests to external APIs (e.g., price service)
+
+    // RestTemplate bean used by PriceService to make HTTP calls to Twelve Data
+    // Timeouts prevent the app hanging if the external API is slow
     @Bean
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();

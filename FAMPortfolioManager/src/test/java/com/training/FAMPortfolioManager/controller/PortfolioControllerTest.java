@@ -17,6 +17,10 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+// Unit tests for PortfolioController.
+// PortfolioService is mocked so tests only verify that the controller:
+//   - delegates calls to the service correctly
+//   - returns the right HTTP status codes
 class PortfolioControllerTest {
 
     @Mock

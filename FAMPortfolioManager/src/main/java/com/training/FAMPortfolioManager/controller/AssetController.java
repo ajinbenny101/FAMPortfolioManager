@@ -21,62 +21,33 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import java.util.List;
 
-
-// AssetController - REST endpoints for asset management
-// CLASS ANNOTATIONS:
-//   @RestController - marks as REST controller (returns JSON) // done 
-//   @RequestMapping("/api/assets") - base URL path for all methods // done
-// FIELD ANNOTATIONS:
-//   @Autowired or use constructor injection - inject AssetService
-// METHOD ANNOTATIONS:
-//   @GetMapping - GET request, no path = root 
-//   @GetMapping("/{id}") - GET single item by ID
-//   @PostMapping - POST request to create
-//   @DeleteMapping("/{id}") - DELETE by ID
-//   @RequestParam(required = false) - optional query parameters
-//   @PathVariable Long id - extract {id} from URL
-//   @RequestBody - parse request body to DTO
-//
-// Inject AssetService via @Autowired or constructor injection
-// Endpoints:
-//   GET / - retrieve all assets
-//     @GetMapping or @RequestMapping(method = RequestMethod.GET) // done
-//   POST / - add new asset
-//     @PostMapping with @RequestBody AssetRequestDto 
-//   DELETE /{id} - delete asset by id
-//     @DeleteMapping("/{id}") with @PathVariable Long id
-//   GET with query params ?ticker=, ?type=, ?from=, ?to= for filtering
-//     @GetMapping with @RequestParam(required = false) parameters
-//
-
-
-// This controller class defines REST endpoints for managing assets in the portfolio. 
-// It uses the AssetService to perform business logic and interacts with the database through the service layer. 
-// The endpoints allow clients to create, retrieve, update, and delete assets, as well as filter assets based on various criteria.
+// REST endpoints for managing assets.
+// All routes are prefixed with /api/assets.
+// Delegates all business logic to AssetService.
 @RestController
 @RequestMapping("/api/assets")
 public class AssetController {
 
         private final AssetService assetService;
 
-        // Constructor injection of AssetService
         public AssetController(AssetService assetService) {
                 this.assetService = assetService;
         }
 
-        // GET / - retrieve all assets
+        // GET /api/assets?portfolioId={id} - returns all assets in a given portfolio
         @GetMapping
         public ResponseEntity<List<AssetResponseDto>> getAssetsByPortfolio(@RequestParam Long portfolioId) {
                 return ResponseEntity.ok(assetService.getAssetsByPortfolio(portfolioId));
         }
 
-        // GET /{id} - retrieve a single asset by ID
+        // GET /api/assets/{assetId} - returns a single asset by its ID
         @GetMapping("/{assetId}")
         public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long assetId) {
                 return ResponseEntity.ok(assetService.getAssetById(assetId));
         }
 
-        // GET /{assetId}/performance - monthly value series for a single asset
+        // GET /api/assets/{assetId}/performance - returns the monthly value series for one asset
+        // CacheControl.noStore() ensures the browser always fetches fresh data
         @GetMapping("/{assetId}/performance")
         public ResponseEntity<List<PerformanceDataPointDto>> getAssetPerformance(@PathVariable Long assetId) {
                 return ResponseEntity.ok()
@@ -84,13 +55,13 @@ public class AssetController {
                                 .body(assetService.getAssetPerformance(assetId));
         }
 
-        // POST / - create a new asset
+        // POST /api/assets - creates a new asset and returns it with HTTP 201
         @PostMapping
         public ResponseEntity<AssetResponseDto> createAsset(@Valid @RequestBody AssetRequestDto request) {
                 return ResponseEntity.status(HttpStatus.CREATED).body(assetService.addAsset(request));
         }
 
-        //     PUT /{id} - update an existing asset by ID
+        // PUT /api/assets/{assetId} - updates an existing asset
         @PutMapping("/{assetId}")
         public ResponseEntity<AssetResponseDto> updateAsset(
                         @PathVariable Long assetId,
@@ -98,56 +69,13 @@ public class AssetController {
                 return ResponseEntity.ok(assetService.updateAsset(assetId, request));
         }
 
-        // DELETE /{id} - delete an asset by ID
+        // DELETE /api/assets/{assetId} - deletes an asset and returns HTTP 204 (no content)
         @DeleteMapping("/{assetId}")
         public ResponseEntity<Void> deleteAsset(@PathVariable Long assetId) {
                 assetService.deleteAsset(assetId);
                 return ResponseEntity.noContent().build();
         }
 }
-
-//     @Autowired
-//     private AssetService assetService;
-//     private final AssetRepository assetRepository;
-
-    
-//     @GetMapping
-//     public ResponseEntity<List<AssetResponseDto>> getAllAssets(
-//             @RequestParam(required = false) String ticker,
-//             @RequestParam(required = false) LocalDate from,
-//             @RequestParam(required = false) LocalDate to) {
-
-//         LocalDateTime fromDateTime = from != null ? from.atStartOfDay() : null;
-//         LocalDateTime toDateTime = to != null ? to.atTime(23, 59, 59) : null;
-
-//         List<AssetResponseDto> assets = assetService.filterAssets(ticker, fromDateTime, toDateTime);
-//         return ResponseEntity.ok(assets);
-//     }
-
-//   @GetMapping("/{id}")
-//     public ResponseEntity<AssetResponseDto> getAssetById(@PathVariable Long id) {
-//         AssetResponseDto asset = assetService.getAssetById(id);
-//         return ResponseEntity.ok(asset);
-//     }
-
-//     @PostMapping
-//     public ResponseEntity<AssetResponseDto> createAsset(@RequestBody AssetRequestDto assetRequest) {
-//         AssetResponseDto createdAsset = assetService.addAsset(assetRequest);
-//         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
-//     }
-
-//     @PutMapping("/{id}")
-//     public ResponseEntity<AssetResponseDto> updateAsset(@PathVariable Long id, @RequestBody AssetRequestDto assetRequest) {
-//         AssetResponseDto updatedAsset = assetService.updateAsset(id, assetRequest);
-//         return ResponseEntity.ok(updatedAsset);
-//     }
-
-//     @DeleteMapping("/{id}")
-//     public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
-//         assetService.deleteAsset(id);
-//         return ResponseEntity.noContent().build();
-//     }
-// }
     
 
         //     public AssetController(AssetRepository assetRepository) {

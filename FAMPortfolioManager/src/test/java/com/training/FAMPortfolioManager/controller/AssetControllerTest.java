@@ -19,6 +19,10 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+// Unit tests for AssetController.
+// AssetService is mocked so tests only verify that the controller:
+//   - passes arguments through to the service correctly
+//   - returns the right HTTP status codes
 class AssetControllerTest {
 
     @Mock

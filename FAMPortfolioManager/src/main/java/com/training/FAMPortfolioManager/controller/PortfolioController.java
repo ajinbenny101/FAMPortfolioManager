@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// This controller class defines REST endpoints for managing portfolios in the application.
-// It uses the PortfolioService to perform business logic and interacts with the database through the service layer.
-// The endpoints allow clients to create, retrieve, update, and delete portfolios.
+// REST endpoints for managing portfolios.
+// All routes are prefixed with /api/portfolios.
+// Delegates all business logic to PortfolioService.
 @RestController
 @RequestMapping("/api/portfolios")
 public class PortfolioController {
@@ -33,19 +33,20 @@ public class PortfolioController {
 		this.portfolioService = portfolioService;
 	}
 
-	// GET / - retrieve all portfolios
+	// GET /api/portfolios - returns all portfolios
 	@GetMapping
 	public ResponseEntity<List<PortfolioResponseDto>> getAllPortfolios() {
 		return ResponseEntity.ok(portfolioService.getAllPortfolios());
 	}
 
-	// GET /{id} - retrieve a single portfolio by ID
+	// GET /api/portfolios/{id} - returns a single portfolio by its ID
 	@GetMapping("/{id}")
 	public ResponseEntity<PortfolioResponseDto> getPortfolioById(@PathVariable Long id) {
 		return ResponseEntity.ok(portfolioService.getPortfolioById(id));
 	}
 
-	// GET /performance/overall - monthly total portfolio value across all portfolios
+	// GET /api/portfolios/performance/overall - monthly total value across all portfolios combined
+	// CacheControl.noStore() ensures the browser always fetches fresh data
 	@GetMapping("/performance/overall")
 	public ResponseEntity<List<PerformanceDataPointDto>> getOverallPerformance() {
 		return ResponseEntity.ok()
@@ -53,20 +54,21 @@ public class PortfolioController {
 				.body(portfolioService.getOverallPerformance());
 	}
 
-	// GET /{id}/performance - monthly value for one portfolio
+	// GET /api/portfolios/{id}/performance - monthly value for one specific portfolio
 	@GetMapping("/{id}/performance")
 	public ResponseEntity<List<PerformanceDataPointDto>> getPortfolioPerformance(@PathVariable Long id) {
 		return ResponseEntity.ok()
 				.cacheControl(CacheControl.noStore())
 				.body(portfolioService.getPortfolioPerformance(id));
 	}
-	// POST / - create a new portfolio
+
+	// POST /api/portfolios - creates a new portfolio and returns it with HTTP 201
 	@PostMapping
 	public ResponseEntity<PortfolioResponseDto> createPortfolio(@Valid @RequestBody PortfolioRequestDTO request) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(portfolioService.addPortfolio(request));
 	}
 
-	// PUT /{id} - update an existing portfolio by ID
+	// PUT /api/portfolios/{id} - updates an existing portfolio's name and description
 	@PutMapping("/{id}")
 	public ResponseEntity<PortfolioResponseDto> updatePortfolio(
 			@PathVariable Long id,
@@ -74,7 +76,7 @@ public class PortfolioController {
 		return ResponseEntity.ok(portfolioService.updatePortfolio(id, request));
 	}
 
-	// DELETE /{id} - delete a portfolio by ID
+	// DELETE /api/portfolios/{id} - deletes a portfolio and returns HTTP 204 (no content)
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deletePortfolio(@PathVariable Long id) {
 		portfolioService.deletePortfolio(id);
