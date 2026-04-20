@@ -1,0 +1,34 @@
+@startuml ERD Diagram for FAMPortfolioManager
+
+entity Portfolio {
+  * id : BIGINT
+  --
+  name : VARCHAR(255)
+  description : TEXT
+  created_date : TIMESTAMP
+}
+
+entity Asset {
+  * id : BIGINT
+  --
+  ticker : VARCHAR(10)
+  company_name : VARCHAR(255)
+  quantity : DECIMAL(10,2)
+  purchase_price : DECIMAL(10,2)
+  date_purchased : TIMESTAMP
+  portfolio_id : BIGINT
+}
+
+entity AssetMonthlyPrice {
+  * id : BIGINT
+  --
+  ticker : VARCHAR(10)
+  price_date : DATE
+  close_price : DECIMAL(10,2)
+  fetched_at : TIMESTAMP
+}
+
+Portfolio ||--o{ Asset : "1..*"
+Asset ||--o{ AssetMonthlyPrice : "1..*" (via ticker)
+
+@enduml

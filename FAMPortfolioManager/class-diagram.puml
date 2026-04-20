@@ -1,0 +1,113 @@
+@startuml Class Diagram
+
+package "com.training.FAMPortfolioManager" {
+  class PortfolioApplication {
+    + main(args: String[]): void
+  }
+
+  package config {
+    class CacheConfig
+    class WebConfig
+  }
+
+  package controller {
+    class AssetController {
+      + getAllAssets(): List<AssetResponseDto>
+      + getAssetById(id: Long): AssetResponseDto
+      + createAsset(asset: AssetRequestDto): AssetResponseDto
+      + updateAsset(id: Long, asset: AssetRequestDto): AssetResponseDto
+      + deleteAsset(id: Long): void
+    }
+
+    class PortfolioController {
+      + getAllPortfolios(): List<PortfolioResponseDto>
+      + getPortfolioById(id: Long): PortfolioResponseDto
+      + createPortfolio(portfolio: PortfolioRequestDTO): PortfolioResponseDto
+      + updatePortfolio(id: Long, portfolio: PortfolioRequestDTO): PortfolioResponseDto
+      + deletePortfolio(id: Long): void
+    }
+  }
+
+  package dto {
+    class AssetRequestDto
+    class AssetResponseDto
+    class PerformanceDataPointDto
+    class PortfolioRequestDTO
+    class PortfolioResponseDto
+  }
+
+  package exception {
+    class AssetNotFoundException extends RuntimeException
+    class GlobalExceptionHandler {
+      + handleAssetNotFound(ex: AssetNotFoundException): ResponseEntity<String>
+    }
+  }
+
+  package model {
+    class Asset {
+      - id: Long
+      - companyName: String
+      - datePurchased: LocalDateTime
+      - purchasePrice: double
+      - quantity: double
+      - ticker: String
+      - portfolio: Portfolio
+    }
+
+    class AssetMonthlyPrice {
+      - id: Long
+      - closePrice: double
+      - fetchedAt: LocalDateTime
+      - priceDate: LocalDate
+      - ticker: String
+    }
+
+    class Portfolio {
+      - id: Long
+      - createdDate: LocalDateTime
+      - description: String
+      - name: String
+    }
+  }
+
+  package repository {
+    interface AssetMonthlyPriceRepository extends JpaRepository<AssetMonthlyPrice, Long>
+    interface AssetRepository extends JpaRepository<Asset, Long>
+    interface PortfolioRepository extends JpaRepository<Portfolio, Long>
+  }
+
+  package service {
+    class AssetService {
+      + getAllAssets(): List<Asset>
+      + getAssetById(id: Long): Asset
+      + saveAsset(asset: Asset): Asset
+      + deleteAsset(id: Long): void
+    }
+
+    class PortfolioService {
+      + getAllPortfolios(): List<Portfolio>
+      + getPortfolioById(id: Long): Portfolio
+      + savePortfolio(portfolio: Portfolio): Portfolio
+      + deletePortfolio(id: Long): void
+    }
+
+    class PriceService {
+      + getPrices(ticker: String): List<AssetMonthlyPrice>
+    }
+  }
+}
+
+AssetController --> AssetService
+PortfolioController --> PortfolioService
+AssetService --> AssetRepository
+PortfolioService --> PortfolioRepository
+PriceService --> AssetMonthlyPriceRepository
+Asset --> Portfolio
+AssetRepository --> Asset
+PortfolioRepository --> Portfolio
+AssetMonthlyPriceRepository --> AssetMonthlyPrice
+AssetService ..> AssetNotFoundException
+PortfolioService ..> AssetNotFoundException
+GlobalExceptionHandler ..> AssetNotFoundException
+
+@enduml

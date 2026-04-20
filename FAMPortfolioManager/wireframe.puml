@@ -1,0 +1,113 @@
+@startsalt Wireframes for FAMPortfolioManager
+
+title Home/Dashboard Wireframe
+{+
+  [Header] | Portfolio Manager
+  [Navigation] | Home | Portfolios | Assets | Reports
+  --
+  [Main Content]
+  {+
+    Welcome to FAM Portfolio Manager
+    --
+    Quick Stats:
+    - Total Portfolios: 5
+    - Total Assets: 20
+    - Total Value: $100,000
+    --
+    [View All Portfolios] [Add New Portfolio]
+  }
+  --
+  [Footer] | © 2024 FAM
+}
+
+title Portfolio List Wireframe
+{+
+  [Header] | Portfolio Manager
+  [Navigation] | Home | Portfolios | Assets | Reports
+  --
+  [Main Content]
+  {+
+    Portfolios
+    --
+    +----------------+----------------+----------------+
+    | Name           | Description    | Actions        |
+    +----------------+----------------+----------------+
+    | Tech Stocks    | My tech inv... | [View] [Edit] [Delete] |
+    +----------------+----------------+----------------+
+    | Bonds          | Bond portfolio | [View] [Edit] [Delete] |
+    +----------------+----------------+----------------+
+    --
+    [Add New Portfolio]
+  }
+  --
+  [Footer] | © 2024 FAM
+}
+
+title Portfolio Details Wireframe
+{+
+  [Header] | Portfolio Manager
+  [Navigation] | Home | Portfolios | Assets | Reports
+  --
+  [Main Content]
+  {+
+    Portfolio: Tech Stocks
+    Description: My tech investments
+    Created: 2023-01-01
+    --
+    Assets in this Portfolio:
+    +----------------+----------------+----------------+----------------+
+    | Ticker         | Company        | Quantity       | Value          |
+    +----------------+----------------+----------------+----------------+
+    | AAPL           | Apple Inc.     | 10             | $1,500         |
+    +----------------+----------------+----------------+----------------+
+    | GOOGL          | Google         | 5              | $2,000         |
+    +----------------+----------------+----------------+
+    --
+    [Add Asset] [Edit Portfolio] [Delete Portfolio]
+  }
+  --
+  [Footer] | © 2024 FAM
+}
+
+title Add/Edit Portfolio Wireframe
+{+
+  [Header] | Portfolio Manager
+  [Navigation] | Home | Portfolios | Assets | Reports
+  --
+  [Main Content]
+  {+
+    Add/Edit Portfolio
+    --
+    Name: [Text Field]
+    Description: [Text Area]
+    --
+    [Save] [Cancel]
+  }
+  --
+  [Footer] | © 2024 FAM
+}
+
+title Asset List Wireframe
+{+
+  [Header] | Portfolio Manager
+  [Navigation] | Home | Portfolios | Assets | Reports
+  --
+  [Main Content]
+  {+
+    Assets
+    --
+    +----------------+----------------+----------------+----------------+
+    | Ticker         | Company        | Quantity       | Current Price  |
+    +----------------+----------------+----------------+----------------+
+    | AAPL           | Apple Inc.     | 10             | $150           |
+    +----------------+----------------+----------------+----------------+
+    | GOOGL          | Google         | 5              | $400           |
+    +----------------+----------------+----------------+
+    --
+    [Add New Asset]
+  }
+  --
+  [Footer] | © 2024 FAM
+}
+
+@enduml
