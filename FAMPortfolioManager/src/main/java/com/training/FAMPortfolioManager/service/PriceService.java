@@ -22,9 +22,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// PriceService - external price data service backed by Twelve Data.
-// It retrieves latest prices and cooperates with the cache layer so repeated
-// UI refreshes do not exhaust the provider unnecessarily.
+// Handles all communication with the Twelve Data API for stock prices.
+//
+// Two main responsibilities:
+//   1. getCurrentPrice()          - fetches the latest price for a ticker with a 3-tier cache
+//                                   (fresh → stale → failure) to avoid hammering the API.
+//   2. ensureMonthlySeriesStored() - fetches a full monthly close-price history and saves it to
+//                                   the DB so the performance charts don't need live API calls.
 @Service
 public class PriceService {
 

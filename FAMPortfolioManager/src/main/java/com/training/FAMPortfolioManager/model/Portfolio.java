@@ -1,20 +1,5 @@
 package com.training.FAMPortfolioManager.model;
 
-// Portfolio - JPA entity representing the user's portfolio
-// Annotate with @Entity and @Table(name = "portfolios")
-// RELATIONSHIPS:
-//   @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-//   private List<Asset> assets; // Child assets owned by this portfolio
-//   Location: Add this field after id, before name
-//
-// Fields:
-//   id (Long) - @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-//   name (String) - optional portfolio name
-//   description (String) - optional portfolio description
-//   assets (List<Asset>) - @OneToMany(mappedBy="portfolio") relationship with Asset entities
-// Links all assets together as a single portfolio
-//
-// IMPORTS NEEDED:
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
@@ -28,18 +13,14 @@ import java.util.ArrayList;
 
 
 
-// IMPORTS NEEDED:
-
 import java.time.LocalDateTime;
-
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-// Portfolio - JPA entity representing the user's portfolio
-
+// Represents a user's investment portfolio.
+// A portfolio can contain many assets (one-to-many with Asset).
 @Entity
 @Table(name = "portfolios")
 @Getter
@@ -59,12 +40,9 @@ public class Portfolio {
     private String description;
     private LocalDateTime createdDate;
 
-    // The @OneToMany annotation defines a one-to-many relationship between Portfolio and Asset.
-    // The "mappedBy" attribute indicates that the "portfolio" field in the Asset class owns the relationship.
-    // "cascade = CascadeType.ALL" means that any changes to the portfolio (like deletion) will cascade to its assets, ensuring data integrity.
-    // "orphanRemoval = true" means that if an asset is removed from the portfolio's asset list, it will also be removed from the database, preventing orphaned records.
-    // "fetch = FetchType.LAZY" means that the list of assets will not be loaded from the database until it is accessed, which can improve performance when loading portfolios without needing asset details immediately.
-
+    // All assets belonging to this portfolio.
+    // CascadeType.ALL means operations on Portfolio cascade to its assets.
+    // orphanRemoval = true deletes assets that are removed from this list.
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Asset> assets = new ArrayList<>();
 

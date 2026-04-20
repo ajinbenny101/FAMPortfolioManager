@@ -1,33 +1,5 @@
 package com.training.FAMPortfolioManager.dto;
 
-// AssetRequestDto - DTO for asset creation/update requests from frontend
-// CLASS ANNOTATIONS: (none, this is a plain POJO)
-// FIELD ANNOTATIONS:
-//   @NotBlank(message = "...") - String field must not be null or empty
-//   @Positive(message = "...") - numeric field must be > 0
-//   @NotNull(message = "...") - field must not be null
-//   @Getter, @Setter - Lombok annotations for automatic getters/setters
-//   @NoArgsConstructor - Lombok creates no-arg constructor
-//   @AllArgsConstructor - Lombok creates constructor with all fields
-// Fields: ticker, companyName, quantity, purchasePrice, purchaseDate, assetType
-// Add validation annotations: @NotNull, @Positive, @NotBlank as appropriate
-// Used when frontend sends data to POST /api/assets endpoint
-//
-// FIELD LAYOUT:
-// @NotBlank(message = "Ticker required")
-// private String ticker;
-// @NotBlank(message = "Company name required")
-// private String companyName;
-// @Positive(message = "Quantity must be positive")
-// private double quantity;
-// @Positive(message = "Price must be positive")
-// private double purchasePrice;
-// @NotNull(message = "Purchase date required")
-// private LocalDateTime purchaseDate;
-// @NotNull(message = "Asset type required")
-// private AssetType assetType;
-//
-// IMPORTS NEEDED:
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.NotBlank;
@@ -37,17 +9,13 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-
-// This DTO class is used to receive asset data from the frontend when creating or updating an asset.
+// Incoming request body for creating or updating an asset.
+// Validation annotations ensure bad data is rejected before reaching the service layer.
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssetRequestDto {
-
-    // Validation annotations ensure that the incoming data meets certain criteria before processing.
-    // For example, the ticker and company name must not be blank, quantity and price must be positive, 
-    // and purchase date and portfolio ID must not be null.
 
     @NotBlank(message = "Ticker required")
     private String ticker;
@@ -64,6 +32,7 @@ public class AssetRequestDto {
     @NotNull(message = "Purchase date required")
     private LocalDateTime purchaseDate;
 
-    @NotNull(message = "Asset type required")
+    // The portfolio this asset should belong to
+    @NotNull(message = "Portfolio ID required")
     private Long portfolioId;
 }

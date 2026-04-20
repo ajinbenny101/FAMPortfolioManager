@@ -1,32 +1,19 @@
 package com.training.FAMPortfolioManager.dto;
 
-// PerformanceDataPointDto - data point for portfolio performance chart
-// CLASS ANNOTATIONS: (none, this is a plain POJO)
-// FIELD ANNOTATIONS:
-//   @Getter, @Setter - Lombok annotations for automatic getters/setters
-//   @NoArgsConstructor - Lombok creates no-arg constructor
-//   @AllArgsConstructor - Lombok creates constructor with all fields
-// Two fields only: date (LocalDate) and totalValue (double)
-// One object per data point for the line chart visualization
-// Returned as a list by GET /api/portfolio/performance endpoint
-//
-// FIELD LAYOUT:
-// private LocalDate date;       // Purchase date or aggregation date
-// private double totalValue;    // Total portfolio value at this date
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-
-// This DTO class represents a single data point for the portfolio performance chart.
+// A single point on the performance chart: one month + the total portfolio value that month.
+// Returned as a list by the /performance endpoints and consumed by the frontend chart.
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PerformanceDataPointDto {
 
-    private LocalDate date;
-    private double totalValue;
+    private LocalDate date;        // First day of the month this point represents
+    private double totalValue;     // Combined market value of all relevant assets that month
 }
